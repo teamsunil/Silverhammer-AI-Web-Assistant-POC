@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Silverhammer AI Collector Assistant — Proof of Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ---------- Tokens (derived from the Silverhammer logo: walnut #493D30, champagne #E6D1AB) ---------- */
+:root{
+  --walnut:#493D30; --walnut-2:#5C4E3E; --champagne:#E6D1AB; --champ-soft:#F5ECDC; --bronze:#8A6A40;
+  --bg:#F5F2ED; --surface:#FFFFFF; --surface-2:#FAF7F2; --ink:#2F271F; --muted:#746A5F; --line:#E3DACB;
+  --plate:#FFFFFF; --plate-ink:#493D30;
+  --btn-bg:#493D30; --btn-ink:#FFFFFF; --btn-hover:#5C4E3E;
+  --user-bg:#493D30; --user-ink:#FBF6EE;
+  --live:#2F6B45; --live-bg:#E5F0E8; --soon:#8A6A40; --soon-bg:#F5ECDC; --mkt:#3E5873; --mkt-bg:#E6EDF4;
+  --shadow-lg:0 24px 60px -18px rgba(52,40,26,.38), 0 6px 18px -6px rgba(52,40,26,.18);
+  --shadow-sm:0 1px 2px rgba(52,40,26,.08), 0 2px 8px -2px rgba(52,40,26,.08);
+  --serif:"Marcellus", "Trajan Pro", Georgia, "Times New Roman", serif;
+  --sans:"Figtree", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1D1813; --surface:#29221B; --surface-2:#231D17; --ink:#F2EBE1; --muted:#B4A898; --line:#40362B;
+    --champ-soft:#3A3026; --bronze:#DCC193;
+    --btn-bg:#E6D1AB; --btn-ink:#2F271F; --btn-hover:#F0E0C2;
+    --user-bg:#E6D1AB; --user-ink:#2F271F;
+    --live:#8FD1A5; --live-bg:#223328; --soon:#E6D1AB; --soon-bg:#3A3026; --mkt:#A9C3DD; --mkt-bg:#22303D;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1D1813; --surface:#29221B; --surface-2:#231D17; --ink:#F2EBE1; --muted:#B4A898; --line:#40362B;
+  --champ-soft:#3A3026; --bronze:#DCC193;
+  --btn-bg:#E6D1AB; --btn-ink:#2F271F; --btn-hover:#F0E0C2;
+  --user-bg:#E6D1AB; --user-ink:#2F271F;
+  --live:#8FD1A5; --live-bg:#223328; --soon:#E6D1AB; --soon-bg:#3A3026; --mkt:#A9C3DD; --mkt-bg:#22303D;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--bronze);outline-offset:2px;border-radius:6px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+a{color:inherit}
+
+/* ---------- Coin / note / medal renderings (shared) ---------- */
+.coin{--d:64px;width:var(--d);height:var(--d);border-radius:50%;position:relative;flex:none;
+  background:repeating-conic-gradient(var(--m-edge) 0 2.2deg, var(--m-dark) 2.2deg 4.5deg);
+  box-shadow:0 3px 8px -2px rgba(40,28,16,.35), inset 0 0 0 1px rgba(0,0,0,.18)}
+.coin::before{content:"";position:absolute;inset:6%;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%, var(--m-hi) 0, var(--m-mid) 52%, var(--m-dark) 100%);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.55), inset 0 -3px 6px rgba(0,0,0,.22)}
+.coin::after{content:"";position:absolute;inset:15%;border-radius:50%;border:1px solid rgba(0,0,0,.2);box-shadow:0 1px 0 rgba(255,255,255,.35)}
+.coin.token::after{border-style:dashed}
+.coin-face{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--serif);color:var(--m-ink);text-shadow:0 1px 0 rgba(255,255,255,.35);line-height:1.05}
+.coin-face b{font-weight:400;font-size:calc(var(--d)*.25)}
+.coin-face i{font-style:normal;font-size:calc(var(--d)*.12);letter-spacing:.04em;margin-top:calc(var(--d)*.03)}
+.m-silver{--m-hi:#FDFDFB;--m-mid:#C9CBCB;--m-dark:#8C8F90;--m-edge:#B9BCBD;--m-ink:#44484B}
+.m-gold{--m-hi:#FFF4C8;--m-mid:#DDB45A;--m-dark:#98712A;--m-edge:#C89B45;--m-ink:#5A400F}
+.m-base{--m-hi:#F3C7A0;--m-mid:#B57442;--m-dark:#6C3E1F;--m-edge:#9A5D33;--m-ink:#3B200E}
+.m-cupro{--m-hi:#F4F5F2;--m-mid:#B8BBB3;--m-dark:#7E827A;--m-edge:#A2A69D;--m-ink:#3E423B}
+
+.note{--w:92px;width:var(--w);height:calc(var(--w)*.56);flex:none;border-radius:4px;position:relative;
+  background:
+   repeating-radial-gradient(circle at 78% 50%, transparent 0 3px, rgba(0,0,0,.07) 3px 4px),
+   linear-gradient(135deg, var(--n-a), var(--n-b));
+  box-shadow:0 3px 8px -3px rgba(40,28,16,.35), inset 0 0 0 1px rgba(0,0,0,.12);display:flex;align-items:center;padding-left:9%}
+.note::after{content:"";position:absolute;inset:6%;border:1px solid rgba(0,0,0,.18);border-radius:2px}
+.note span{font-family:var(--serif);font-size:calc(var(--w)*.2);color:var(--n-ink);position:relative;z-index:1}
+.n-green{--n-a:#C9D9B8;--n-b:#8FAE82;--n-ink:#243A1E}
+.n-brown{--n-a:#E4C3A8;--n-b:#B98465;--n-ink:#43230F}
+.n-white{--n-a:#FBFAF6;--n-b:#E7E3D8;--n-ink:#222}
+.n-blue{--n-a:#C8D5E6;--n-b:#8BA3C4;--n-ink:#1C2E47}
+.n-red{--n-a:#EACDC4;--n-b:#C48C80;--n-ink:#4A1B12}
+
+.medal{--d:56px;display:flex;flex-direction:column;align-items:center;flex:none}
+.medal .ribbon{width:calc(var(--d)*.62);height:calc(var(--d)*.55);background:var(--rib);border-radius:2px 2px 0 0;
+  box-shadow:inset 0 -6px 6px -4px rgba(0,0,0,.25)}
+.medal .coin{margin-top:-2px;--d:inherit}
+.modal-art .medal .coin{--d:inherit}
+.art-wrap{width:96px;min-height:86px;display:flex;align-items:center;justify-content:center;flex:none;
+  background:radial-gradient(circle at 50% 45%, var(--surface) 0, var(--surface-2) 70%);border-radius:10px;border:1px solid var(--line)}
+
+/* ---------- Mock website ---------- */
+.demo-strip{background:var(--walnut);color:#F3E9D8;font-size:13px;text-align:center;padding:7px 16px}
+.demo-strip strong{font-weight:600;color:var(--champagne)}
+.site-head{background:var(--plate);border-bottom:1px solid #E6DED0;position:sticky;top:0;z-index:30}
+.head-inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:14px 24px}
+.brand img{height:46px;width:auto;display:block}
+.nav{margin-left:auto;display:flex;gap:4px;align-items:center}
+.nav a{text-decoration:none;color:var(--plate-ink);font-size:14.5px;font-weight:500;padding:8px 11px;border-radius:8px}
+.nav a:hover{background:#F5ECDC}
+.nav a[aria-current="page"]{box-shadow:inset 0 -2px 0 var(--champagne)}
+.watch-link{display:inline-flex;align-items:center;gap:6px;border:1px solid #E6DED0;border-radius:999px;padding:6px 12px;background:#fff;color:var(--plate-ink);font-size:14px;font-weight:500}
+.badge{min-width:20px;height:20px;border-radius:999px;background:var(--walnut);color:#fff;font-size:12px;display:inline-grid;place-items:center;padding:0 6px}
+.menu-btn{display:none;margin-left:auto;background:#fff;border:1px solid #E6DED0;border-radius:8px;padding:8px 10px;color:var(--plate-ink)}
+
+.hero{max-width:1240px;margin:0 auto;padding:64px 24px 56px;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(34px,4.6vw,58px);line-height:1.08;letter-spacing:-.005em;margin:0 0 18px;color:var(--ink);max-width:14ch}
+.hero .lede{font-size:clamp(17px,1.6vw,20px);color:var(--muted);max-width:40ch;margin:0 0 28px}
+.ask-bar{display:flex;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:var(--shadow-sm);max-width:560px}
+.ask-bar input{flex:1;min-width:0;border:0;background:transparent;padding:10px 12px;font-size:16px;outline:none}
+.ask-bar input::placeholder{color:var(--muted)}
+.ask-bar:focus-within{border-color:var(--bronze)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:10px;padding:10px 16px;font-weight:600;font-size:14.5px;background:var(--btn-bg);color:var(--btn-ink);transition:background .15s}
+.btn:hover{background:var(--btn-hover)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{background:var(--champ-soft)}
+.try{margin-top:30px}
+.try h2{font-family:var(--sans);font-size:15px;font-weight:600;margin:0 0 10px;color:var(--ink)}
+.try-row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:500;color:var(--ink);transition:border-color .15s, background .15s}
+.chip:hover{border-color:var(--bronze);background:var(--champ-soft)}
+
+.tray{position:relative;height:420px}
+.tray .coin{position:absolute}
+.tray .c1{--d:250px;left:6%;top:18px;transform:rotate(-8deg)}
+.tray .c2{--d:190px;right:4%;top:120px;transform:rotate(10deg)}
+.tray .c3{--d:150px;left:30%;bottom:6px;transform:rotate(-3deg)}
+.tray .card-tag{position:absolute;right:2%;bottom:40px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-sm);max-width:250px;font-size:14px}
+.tray .card-tag p{margin:0}
+.tray .card-tag .q{color:var(--muted);font-size:13px;margin-bottom:4px}
+@media (prefers-reduced-motion: no-preference){
+  .tray .coin{animation:settle .9s cubic-bezier(.2,.8,.2,1) both}
+  .tray .c2{animation-delay:.12s}.tray .c3{animation-delay:.24s}
+  @keyframes settle{from{opacity:0;translate:0 -28px}to{opacity:1;translate:0 0}}
+}
+
+.section{max-width:1240px;margin:0 auto;padding:56px 24px}
+.section > h2{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3vw,36px);margin:0 0 8px}
+.section > p.sub{color:var(--muted);margin:0 0 32px;max-width:60ch}
+.vision{display:grid;grid-template-columns:repeat(5,1fr);gap:28px}
+.vision div{border-top:2px solid var(--champagne);padding-top:16px}
+.vision h3{font-family:var(--serif);font-weight:400;font-size:22px;margin:10px 0 6px}
+.vision p{margin:0;color:var(--muted);font-size:15px}
+.vision svg{width:26px;height:26px;color:var(--bronze)}
+.band{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.sales{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.sale{border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;gap:16px;background:var(--surface-2)}
+.sale .date{font-family:var(--serif);text-align:center;min-width:58px;border-right:1px solid var(--line);padding-right:16px}
+.sale .date b{display:block;font-size:30px;font-weight:400;line-height:1}
+.sale .date span{font-size:13px;color:var(--muted)}
+.sale h3{margin:0 0 4px;font-size:17px;font-weight:600}
+.sale p{margin:0;color:var(--muted);font-size:14px}
+.demo-flag{display:inline-block;font-size:11.5px;font-weight:600;color:var(--bronze);background:var(--champ-soft);border-radius:999px;padding:2px 8px;letter-spacing:.01em}
+.site-foot{background:var(--walnut);color:#E9DECB;padding:36px 24px 120px}
+.site-foot .inner{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;font-size:14px}
+.site-foot a{color:var(--champagne)}
+
+/* ---------- Floating launcher ---------- */
+.fab{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:10px;
+  background:var(--walnut);color:#FBF6EE;border:1px solid rgba(230,209,171,.5);border-radius:999px;padding:10px 20px 10px 10px;font-weight:600;font-size:15px;box-shadow:var(--shadow-lg)}
+.fab .coin{--d:34px}
+.fab:hover{background:var(--walnut-2)}
+.fab[hidden]{display:none}
+
+/* ---------- Chat widget ---------- */
+.chat{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:70;width:410px;height:min(700px, calc(100vh - 120px));
+  background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden;
+  transform-origin:bottom right}
+.chat[hidden]{display:none}
+@media (prefers-reduced-motion: no-preference){ .chat.opening{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)} @keyframes pop{from{opacity:0;transform:scale(.92) translateY(12px)}to{opacity:1;transform:none}} }
+.chat.min{height:auto}
+.chat.min .chat-body,.chat.min .chat-foot,.chat.min .prefs{display:none}
+.chat-head{background:var(--plate);color:var(--plate-ink);padding:12px 12px 0 16px;border-bottom:1px solid #E6DED0}
+.head-row{display:flex;align-items:center;gap:10px}
+.head-row img{height:34px;width:auto;display:block}
+.head-actions{margin-left:auto;display:flex;gap:4px}
+.icon-btn{width:34px;height:34px;border-radius:9px;border:1px solid transparent;background:transparent;display:grid;place-items:center;color:var(--plate-ink)}
+.icon-btn:hover{background:#F5ECDC;border-color:#E6DED0}
+.icon-btn svg{width:18px;height:18px}
+.head-sub{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;padding:8px 0 10px}
+.head-title{font-family:var(--serif);font-size:16px;color:var(--plate-ink);white-space:nowrap}
+.ai-ind{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#6B5E4E;background:#F7EFE1;border:1px solid #EADBBF;border-radius:999px;padding:3px 9px 3px 7px;white-space:nowrap}
+.ai-ind::before{content:"";width:7px;height:7px;border-radius:50%;background:#B8934F;box-shadow:0 0 0 3px rgba(184,147,79,.18)}
+.prefs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:8px 14px;background:var(--champ-soft);border-bottom:1px solid var(--line);font-size:12.5px}
+.prefs[hidden]{display:none}
+.prefs .lbl{color:var(--muted);margin-right:2px}
+.pref{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-weight:500}
+.prefs button{margin-left:auto;border:0;background:none;color:var(--bronze);font-weight:600;font-size:12.5px;padding:2px 4px;text-decoration:underline;text-underline-offset:2px}
+
+.chat-body{flex:1;overflow-y:auto;padding:16px 14px 8px;background:var(--surface-2);scroll-behavior:smooth;overscroll-behavior:contain}
+.msg{display:flex;flex-direction:column;margin-bottom:14px;max-width:100%}
+.msg.user{align-items:flex-end}
+.bubble{padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.5;max-width:88%}
+.msg.bot .bubble{background:var(--surface);border:1px solid var(--line);border-top-left-radius:4px}
+.msg.user .bubble{background:var(--user-bg);color:var(--user-ink);border-top-right-radius:4px}
+.bubble p{margin:0}.bubble p + p{margin-top:6px}
+.meta{font-size:11px;color:var(--muted);margin:4px 4px 0}
+@media (prefers-reduced-motion: no-preference){ .msg{animation:rise .22s ease-out} @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}} }
+.typing .bubble{display:flex;gap:4px;padding:13px 14px}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--bronze);opacity:.35}
+@media (prefers-reduced-motion: no-preference){ .typing span{animation:blink 1s infinite} .typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s} @keyframes blink{50%{opacity:1}} }
+
+.welcome-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.welcome-card h3{font-family:var(--serif);font-weight:400;font-size:17px;margin:0 0 4px}
+.welcome-card p{margin:0 0 10px;font-size:14.5px}
+.starters{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.starter{text-align:left;border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:500;transition:border-color .15s, background .15s}
+.starter:hover{border-color:var(--bronze);background:var(--champ-soft)}
+.demos{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.demos h4{margin:0 0 6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.demos .try-row .chip{font-size:12.5px;padding:5px 10px}
+
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-width:100%}
+.qr{border:1px solid var(--bronze);color:var(--ink);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;transition:background .15s}
+.qr:hover{background:var(--champ-soft)}
+.cta-row{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.cta-row .btn{font-size:13.5px;padding:8px 14px}
+
+.steps{margin:8px 0 2px;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding:0 0 8px 30px;font-size:14px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;background:var(--champ-soft);border:1px solid var(--champagne);font-size:11.5px;font-weight:700;display:grid;place-items:center;color:var(--bronze)}
+.steps b{font-weight:600}
+.fine{font-size:12px;color:var(--muted);margin-top:4px}
+
+.cards{display:flex;flex-direction:column;gap:10px;margin-top:10px;width:100%}
+.cards-head{font-family:var(--serif);font-size:18px;margin:10px 2px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow-sm)}
+.card-top{display:flex;gap:12px}
+.card-info{min-width:0;flex:1}
+.card h4{font-family:var(--serif);font-weight:400;font-size:16px;line-height:1.25;margin:0 0 5px}
+.status{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px}
+.status.live{color:var(--live);background:var(--live-bg)}
+.status.live::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.status.upcoming{color:var(--soon);background:var(--soon-bg)}
+.status.market{color:var(--mkt);background:var(--mkt-bg)}
+.when{font-size:11.5px;color:var(--muted);margin-left:4px}
+.specs{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:2px 8px;margin:0;font-size:12.5px}
+.specs dt{color:var(--muted)}
+.specs dd{margin:0;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:8px}
+.price-row .pl{font-size:12px;color:var(--muted)}
+.price-row .pv{font-family:var(--serif);font-size:20px;margin-left:6px}
+.why{font-size:12.5px;color:var(--ink);background:var(--champ-soft);border-left:3px solid var(--champagne);border-radius:6px;padding:6px 9px}
+.card-actions{display:flex;gap:8px}
+.card-actions button{flex:1;font-size:13px;padding:8px 10px;border-radius:9px}
+.watch-btn{background:transparent;border:1px solid var(--line);font-weight:600}
+.watch-btn:hover{background:var(--champ-soft)}
+.watch-btn[aria-pressed="true"]{border-color:var(--bronze);color:var(--bronze);background:var(--champ-soft)}
+
+.auction-card{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.auction-card .date{font-family:var(--serif);text-align:center;min-width:46px}
+.auction-card .date b{display:block;font-weight:400;font-size:24px;line-height:1}
+.auction-card .date span{font-size:11.5px;color:var(--muted)}
+.auction-card h4{margin:0;font-size:14px;font-weight:600}
+.auction-card p{margin:0;font-size:12.5px;color:var(--muted)}
+.auction-card button{margin-left:auto;font-size:12.5px;padding:6px 10px;white-space:nowrap}
+
+.chat-foot{border-top:1px solid var(--line);background:var(--surface);padding:10px 12px 8px}
+.composer{display:flex;gap:8px;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:5px 5px 5px 12px}
+.composer:focus-within{border-color:var(--bronze)}
+.composer input{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:15px;padding:7px 0}
+.composer input::placeholder{color:var(--muted)}
+.composer .btn{padding:8px 14px;font-size:14px}
+.disclaimer{font-size:11px;color:var(--muted);line-height:1.4;margin:7px 2px 0;text-align:center}
+
+/* ---------- Modal ---------- */
+.modal-bg{position:fixed;inset:0;z-index:90;background:rgba(29,22,15,.55);display:grid;place-items:center;padding:20px}
+.modal-bg[hidden]{display:none}
+.modal{background:var(--surface);border-radius:18px;max-width:640px;width:100%;max-height:calc(100% - 20px);overflow:auto;box-shadow:var(--shadow-lg);border:1px solid var(--line)}
+.modal-top{display:grid;grid-template-columns:220px 1fr;gap:0}
+.modal-art{background:radial-gradient(circle at 50% 45%, var(--surface) 0, var(--champ-soft) 90%);display:grid;place-items:center;padding:28px;border-right:1px solid var(--line)}
+.modal-art .coin{--d:160px}.modal-art .note{--w:180px}.modal-art .medal{--d:120px}
+.modal-body{padding:22px 22px 18px}
+.modal-body h3{font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.2;margin:8px 0 10px}
+.modal-body .specs{font-size:14px;gap:4px 12px}
+.modal-body p.desc{font-size:14.5px;color:var(--muted);margin:12px 0}
+.modal-foot{display:flex;gap:8px;padding:0 22px 20px;flex-wrap:wrap}
+.lot{font-size:12px;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:100;background:var(--walnut);color:#FBF6EE;border-radius:12px;padding:10px 16px;font-size:14px;box-shadow:var(--shadow-lg);max-width:min(92vw,460px);text-align:center}
+.toast[hidden]{display:none}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1080px){
+  .nav{display:none;position:absolute;left:0;right:0;top:100%;background:var(--plate);flex-direction:column;align-items:stretch;padding:8px 16px 16px;border-bottom:1px solid #E6DED0}
+  .nav.open{display:flex}
+  .menu-btn{display:inline-flex}
+  .head-inner{position:relative}
+  .vision{grid-template-columns:repeat(3,1fr)}
+  .sales{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 860px){
+  .hero{grid-template-columns:1fr;padding-top:40px}
+  .tray{height:300px;max-width:460px;width:100%;margin:0 auto}
+  .tray .c1{--d:180px}.tray .c2{--d:140px;top:80px}.tray .c3{--d:110px}
+  .vision{grid-template-columns:1fr 1fr}
+  .sales{grid-template-columns:1fr}
+}
+@media (max-width: 640px){
+  .head-inner{padding:10px 16px;gap:12px}
+  .brand img{height:36px}
+  .watch-link .txt{display:none}
+  .chat{inset:0;width:auto;height:100%;border-radius:0;border:0}
+  .chat.min{inset:auto 12px calc(12px + env(safe-area-inset-bottom,0px)) 12px;height:auto;border-radius:16px;border:1px solid var(--line)}
+  .chat-head{padding-top:calc(10px + env(safe-area-inset-top,0px))}
+  .chat-foot{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  .fab{right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .modal-top{grid-template-columns:1fr}
+  .modal-art{border-right:0;border-bottom:1px solid var(--line)}
+  .vision{grid-template-columns:1fr}
+  .specs{gap:2px 6px}
+}
+</style>
+</head>
+<body>
+
+<div class="demo-strip"><strong>Proof of concept.</strong> A demonstration of an AI assistant for Silverhammer Coin Auctions. Listings and prices are illustrative demo data.</div>
+
+<header class="site-head">
+  <div class="head-inner">
+    <a class="brand" href="#top" aria-label="Silverhammer Coin Auctions home"><img src="data:image/png;base64,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" alt="Silverhammer Coin Auctions"></a>
+    <nav class="nav" id="nav" aria-label="Main">
+      <a href="#top" aria-current="page">Home</a>
+      <a href="#auctions">Auctions</a>
+      <a href="#" data-ask="Show me what's in the marketplace">Marketplace</a>
+      <a href="#" data-ask="Show me British coins">Coins</a>
+      <a href="#" data-ask="Show me banknotes">Banknotes</a>
+      <a href="#" data-ask="Show me medals and tokens">Medals &amp; Tokens</a>
+      <a href="#" data-ask="How can I sell my collection?">Sell</a>
+      <a href="#vision">About</a>
+    </nav>
+    <button class="watch-link" id="siteWatch" type="button" aria-label="Open watchlist in assistant">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.6-9.3 9-9.3 9z"/></svg>
+      <span class="txt">Watchlist</span><span class="badge" data-watch-count>0</span>
+    </button>
+    <button class="menu-btn" id="menuBtn" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div>
+      <h1>Your AI-Powered Silverhammer Collector Assistant</h1>
+      <p class="lede">Discover coins, explore collectibles and get help navigating auctions — simply ask.</p>
+      <div class="ask-bar">
+        <label for="heroInput" class="sr-only">Describe what you're looking for</label>
+        <input id="heroInput" type="text" placeholder="e.g. I have £150, what can I get?" autocomplete="off">
+        <button class="btn" id="heroSend" type="button">Ask the assistant</button>
+      </div>
+      <div class="try">
+        <h2>Try a demo</h2>
+        <div class="try-row" data-demo-row></div>
+      </div>
+    </div>
+    <div class="tray" aria-hidden="true">
+      <div class="coin m-silver c1"><span class="coin-face"><b>5s</b><i>1887</i></span></div>
+      <div class="coin m-gold c2"><span class="coin-face"><b>£1</b><i>1900</i></span></div>
+      <div class="coin m-base c3"><span class="coin-face"><b>1d</b><i>1860</i></span></div>
+      <div class="card-tag"><p class="q">“British silver, Victorian, under £200”</p><p>4 matching lots found in seconds, no filters needed.</p></div>
+    </div>
+  </section>
+
+  <section class="band" id="vision">
+    <div class="section">
+      <h2>What the AI assistant could do</h2>
+      <p class="sub">Connected to Silverhammer’s approved marketplace and auction data, the assistant becomes a concierge for every visitor.</p>
+      <div class="vision">
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><h3>Discover</h3><p>Help collectors find relevant coins and collectibles through natural language.</p></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.3 6L12 16.4 6.6 19.4l1.3-6L3.4 9.3l6-.7z"/></svg><h3>Recommend</h3><p>Understand collector interests, budget and preferences.</p></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 20h10M8 20V9m-4 0 8-5 8 5M6 9h12m-2 0v6"/><path d="m16 15 5 5"/></svg><h3>Guide</h3><p>Answer questions about auctions, bidding and buying.</p></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><h3>Personalise</h3><p>Build recommendations around the user's collecting interests.</p></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1-5A8 8 0 1 1 21 12z"/></svg><h3>Assist</h3><p>Provide instant answers throughout the buying journey.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="auctions">
+    <h2>Upcoming sales</h2>
+    <p class="sub">Sample auction calendar <span class="demo-flag">Demo data</span></p>
+    <div class="sales" data-sales></div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="inner">
+    <span>Silverhammer Coin Auctions — AI Collector Assistant proof of concept.</span>
+    <span>Live site: <a href="https://silverhammercoinauctions.co.uk/" target="_blank" rel="noopener">silverhammercoinauctions.co.uk</a></span>
+  </div>
+</footer>
+
+<!-- Launcher -->
+<button class="fab" id="fab" type="button" aria-controls="chat" aria-expanded="false">
+  <span class="coin m-silver" aria-hidden="true"><span class="coin-face"><b style="font-size:11px">S</b></span></span>
+  Ask Silverhammer AI
+</button>
+
+<!-- Assistant -->
+<section class="chat" id="chat" role="dialog" aria-label="Silverhammer AI Collector Assistant" hidden>
+  <div class="chat-head">
+    <div class="head-row">
+      <img src="data:image/png;base64,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" alt="Silverhammer Coin Auctions">
+      <div class="head-actions">
+        <button class="icon-btn" id="minBtn" type="button" aria-label="Minimise assistant" aria-expanded="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/></svg>
+        </button>
+        <button class="icon-btn" id="closeBtn" type="button" aria-label="Close assistant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="head-sub">
+      <span class="head-title">Silverhammer AI Collector Assistant</span>
+      <span class="ai-ind">AI-powered Silverhammer Assistant</span>
+    </div>
+  </div>
+  <div class="prefs" id="prefs" hidden aria-live="polite"></div>
+  <div class="chat-body" id="log" role="log" aria-live="polite" aria-relevant="additions"></div>
+  <div class="chat-foot">
+    <div class="composer">
+      <label for="input" class="sr-only">Message the assistant</label>
+      <input id="input" type="text" placeholder="Ask me about coins, collectibles or auctions…" autocomplete="off" enterkeyhint="send">
+      <button class="btn" id="send" type="button">Send</button>
+    </div>
+    <p class="disclaimer">Demo experience – recommendations shown are illustrative. For production, the assistant can be connected to Silverhammer’s approved website, marketplace and auction data.</p>
+  </div>
+</section>
+
+<div class="modal-bg" id="modalBg" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" id="modal"></div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   DEMO CATALOGUE — illustrative only, not live Silverhammer listings
+   ===================================================================== */
+const S = { live:"live", up:"upcoming", mk:"market" };
+const CATALOG = [
+  // British coins — Victorian
+  {id:"v1", lot:"Lot 214", type:"coin", name:"1893 Victoria Silver Shilling", year:1893, country:"United Kingdom", region:"uk", denom:"Shilling", dkey:"shilling", metal:"Silver", mkey:"silver", grade:"Good Very Fine (GVF)", price:75, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"1s"}, note:"A classic late-Victorian ‘Old Head’ shilling with sharp detail — an approachable way to start a Victorian silver set."},
+  {id:"v2", lot:"Lot 188", type:"coin", name:"1887 Victoria Jubilee Crown", year:1887, country:"United Kingdom", region:"uk", denom:"Crown", dkey:"crown", metal:"Silver", mkey:"silver", grade:"Extremely Fine (EF)", price:165, status:S.live, when:"Ends 27 Sep 2026", rarity:"common", beginner:false, art:{k:"coin", m:"silver", a:"5s"}, note:"Large, impressive Golden Jubilee crown with Pistrucci’s St George reverse — a centrepiece for any Victorian collection."},
+  {id:"v3", lot:"Lot 202", type:"coin", name:"1889 Victoria Double Florin", year:1889, country:"United Kingdom", region:"uk", denom:"Double Florin", dkey:"florin", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:58, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"4s"}, note:"The short-lived four-shilling piece, struck only 1887–1890 — a great talking point at a modest price."},
+  {id:"v4", lot:"Lot 207", type:"coin", name:"1890 Victoria Halfcrown", year:1890, country:"United Kingdom", region:"uk", denom:"Halfcrown", dkey:"halfcrown", metal:"Silver", mkey:"silver", grade:"Good Fine (GF)", price:42, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"2/6"}, note:"Jubilee Head halfcrown dated 1890 with honest, even wear."},
+  {id:"v5", lot:"Lot 176", type:"coin", name:"1874 Victoria Gothic Florin", year:1874, country:"United Kingdom", region:"uk", denom:"Florin", dkey:"florin", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:120, status:S.live, when:"Ends 28 Sep 2026", rarity:"scarce", beginner:false, art:{k:"coin", m:"silver", a:"2s"}, note:"The ornate ‘Gothic’ florin, admired for its Gothic lettering and intricate design."},
+  {id:"v6", lot:"Lot 231", type:"coin", name:"1900 Victoria Gold Sovereign", year:1900, country:"United Kingdom", region:"uk", denom:"Sovereign", dkey:"sovereign", metal:"Gold (22ct)", mkey:"gold", grade:"Extremely Fine (EF)", price:495, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:false, art:{k:"coin", m:"gold", a:"£1"}, note:"Final-year Veiled Head sovereign in 22ct gold."},
+  {id:"v7", lot:"MP-1042", type:"coin", name:"1860 Victoria Bun Head Penny", year:1860, country:"United Kingdom", region:"uk", denom:"Penny", dkey:"penny", metal:"Bronze", mkey:"base", grade:"Very Fine (VF)", price:28, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"base", a:"1d"}, note:"First year of the bronze ‘Bun Head’ penny — affordable history in the hand."},
+  {id:"v8", lot:"MP-1051", type:"coin", name:"1845 Victoria Young Head Groat", year:1845, country:"United Kingdom", region:"uk", denom:"Fourpence (Groat)", dkey:"groat", metal:"Silver", mkey:"silver", grade:"Good Fine (GF)", price:35, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"4d"}, note:"Small early-Victorian silver with the youthful portrait of the Queen."},
+  // Edwardian
+  {id:"e1", lot:"Lot 244", type:"coin", name:"1902 Edward VII Florin", year:1902, country:"United Kingdom", region:"uk", denom:"Florin", dkey:"florin", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:68, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"2s"}, note:"Coronation-year florin with the striking standing Britannia reverse."},
+  {id:"e2", lot:"Lot 249", type:"coin", name:"1902 Edward VII Crown", year:1902, country:"United Kingdom", region:"uk", denom:"Crown", dkey:"crown", metal:"Silver", mkey:"silver", grade:"Good Extremely Fine (GEF)", price:240, status:S.live, when:"Ends 29 Sep 2026", rarity:"scarce", beginner:false, art:{k:"coin", m:"silver", a:"5s"}, note:"The only currency crown of Edward VII’s reign — a one-year type."},
+  {id:"e3", lot:"Lot 252", type:"coin", name:"1910 Edward VII Half Sovereign", year:1910, country:"United Kingdom", region:"uk", denom:"Half Sovereign", dkey:"sovereign", metal:"Gold (22ct)", mkey:"gold", grade:"Extremely Fine (EF)", price:285, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:false, art:{k:"coin", m:"gold", a:"½£"}, note:"A compact, attractive entry into British gold."},
+  // Georgian
+  {id:"g1", lot:"Lot 142", type:"coin", name:"1816 George III Shilling", year:1816, country:"United Kingdom", region:"uk", denom:"Shilling", dkey:"shilling", metal:"Silver", mkey:"silver", grade:"Good Very Fine (GVF)", price:85, status:S.live, when:"Ends 27 Sep 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"1s"}, note:"From the Great Recoinage of 1816 — the start of modern British silver coinage."},
+  {id:"g2", lot:"Lot 131", type:"coin", name:"1797 George III Cartwheel Penny", year:1797, country:"United Kingdom", region:"uk", denom:"Penny", dkey:"penny", metal:"Copper", mkey:"base", grade:"Fine (F)", price:95, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:true, art:{k:"coin", m:"base", a:"1d"}, note:"The famous heavy ‘Cartwheel’, the first penny struck by steam power."},
+  // Modern British
+  {id:"m1", lot:"Lot 266", type:"coin", name:"1934 George V Wreath Crown", year:1934, country:"United Kingdom", region:"uk", denom:"Crown", dkey:"crown", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:185, status:S.live, when:"Ends 30 Sep 2026", rarity:"scarce", beginner:false, art:{k:"coin", m:"silver", a:"5s"}, note:"A low-mintage Wreath Crown year, keenly sought by modern British specialists."},
+  {id:"m2", lot:"Lot 271", type:"coin", name:"1937 George VI Coronation Crown", year:1937, country:"United Kingdom", region:"uk", denom:"Crown", dkey:"crown", metal:"Silver (.500)", mkey:"silver", grade:"Uncirculated (UNC)", price:38, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"5s"}, note:"A handsome, affordable coronation crown with lustre."},
+  {id:"m3", lot:"Lot 279", type:"coin", name:"1958 Elizabeth II Gold Sovereign", year:1958, country:"United Kingdom", region:"uk", denom:"Sovereign", dkey:"sovereign", metal:"Gold (22ct)", mkey:"gold", grade:"Uncirculated (UNC)", price:475, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:false, art:{k:"coin", m:"gold", a:"£1"}, note:"Early Elizabeth II bullion sovereign."},
+  {id:"m4", lot:"MP-1107", type:"coin", name:"1953 Elizabeth II Coronation Crown", year:1953, country:"United Kingdom", region:"uk", denom:"Crown", dkey:"crown", metal:"Cupronickel", mkey:"base", grade:"Brilliant Uncirculated (BU)", price:12, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"cupro", a:"5s"}, note:"An inexpensive souvenir of the 1953 Coronation — ideal first purchase."},
+  // World coins
+  {id:"w1", lot:"Lot 318", type:"coin", name:"1921 USA Morgan Dollar", year:1921, country:"United States", region:"world", ckey:"usa", denom:"Dollar", dkey:"dollar", metal:"Silver", mkey:"silver", grade:"Extremely Fine (EF)", price:55, status:S.live, when:"Ends 28 Sep 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"$1"}, note:"The last year of the iconic Morgan dollar — a world-coin favourite."},
+  {id:"w2", lot:"Lot 322", type:"coin", name:"1867 France 5 Francs, Napoleon III", year:1867, country:"France", region:"world", ckey:"france", denom:"5 Francs", dkey:"franc", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:48, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"5F"}, note:"Big Second Empire silver with the laureate portrait of Napoleon III."},
+  {id:"w3", lot:"Lot 327", type:"coin", name:"1908 Prussia 3 Mark, Wilhelm II", year:1908, country:"Germany (Prussia)", region:"world", ckey:"germany", denom:"3 Mark", dkey:"mark", metal:"Silver", mkey:"silver", grade:"Extremely Fine (EF)", price:62, status:S.up, when:"Auction 8 Oct 2026", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"3M"}, note:"Crisp Imperial German silver from the pre-war era."},
+  {id:"w4", lot:"Lot 333", type:"coin", name:"1840 East India Company Rupee", year:1840, country:"India (British)", region:"world", ckey:"india", denom:"Rupee", dkey:"rupee", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:45, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"silver", a:"1R"}, note:"Bridges British and world collecting — Victoria’s portrait on an Indian rupee."},
+  {id:"w5", lot:"Lot 340", type:"coin", name:"Constantine I Bronze Follis", year:320, yearLabel:"c. AD 320", country:"Roman Empire", region:"world", ckey:"rome", denom:"Follis", dkey:"follis", metal:"Bronze", mkey:"base", grade:"Very Fine (VF)", price:40, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"coin", m:"base", a:"Æ"}, note:"A genuine 1,700-year-old Roman coin at a beginner-friendly price."},
+  {id:"w6", lot:"Lot 345", type:"coin", name:"Athens Silver Tetradrachm ‘Owl’", year:-440, yearLabel:"c. 440 BC", country:"Ancient Greece", region:"world", ckey:"greece", denom:"Tetradrachm", dkey:"tetradrachm", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:1150, status:S.up, when:"Auction 8 Oct 2026", rarity:"rare", beginner:false, art:{k:"coin", m:"silver", a:"ΑΘΕ"}, note:"One of the most famous coins of the ancient world, with Athena and her owl."},
+  // Banknotes
+  {id:"b1", lot:"Lot 512", type:"banknote", name:"Bank of England £1, Peppiatt", year:1934, yearLabel:"1934–39", country:"United Kingdom", region:"uk", denom:"£1", dkey:"pound note", metal:"Paper", mkey:"paper", grade:"Extremely Fine (EF)", price:85, status:S.up, when:"Auction 24 Oct 2026", rarity:"common", beginner:true, art:{k:"note", t:"green", a:"£1"}, note:"Classic green pre-war pound note signed by Chief Cashier Kenneth Peppiatt."},
+  {id:"b2", lot:"Lot 506", type:"banknote", name:"Bank of England 10 Shillings, Mahon", year:1928, country:"United Kingdom", region:"uk", denom:"10 Shillings", dkey:"10 shillings", metal:"Paper", mkey:"paper", grade:"Very Fine (VF)", price:140, status:S.live, when:"Ends 29 Sep 2026", rarity:"scarce", beginner:false, art:{k:"note", t:"red", a:"10/-"}, note:"From the first series of Bank of England ten-shilling notes."},
+  {id:"b3", lot:"Lot 518", type:"banknote", name:"Bank of England £5 ‘White Note’, Peppiatt", year:1945, country:"United Kingdom", region:"uk", denom:"£5", dkey:"five pound", metal:"Paper", mkey:"paper", grade:"Very Fine (VF)", price:210, status:S.up, when:"Auction 24 Oct 2026", rarity:"scarce", beginner:false, art:{k:"note", t:"white", a:"£5"}, note:"The large, elegant black-on-white fiver — a display piece."},
+  {id:"b4", lot:"MP-2210", type:"banknote", name:"Bank of Scotland £1", year:1969, country:"Scotland", region:"uk", denom:"£1", dkey:"pound note", metal:"Paper", mkey:"paper", grade:"Uncirculated (UNC)", price:25, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"note", t:"blue", a:"£1"}, note:"Crisp Scottish note — an easy, low-cost entry into paper money."},
+  {id:"b5", lot:"Lot 501", type:"banknote", name:"Treasury 10 Shillings, Bradbury", year:1915, country:"United Kingdom", region:"uk", denom:"10 Shillings", dkey:"10 shillings", metal:"Paper", mkey:"paper", grade:"Fine (F)", price:320, status:S.up, when:"Auction 24 Oct 2026", rarity:"rare", beginner:false, art:{k:"note", t:"brown", a:"10/-"}, note:"First World War emergency Treasury issue — genuinely scarce in any grade."},
+  // Medals
+  {id:"d1", lot:"Lot 612", type:"medal", name:"WWI British War Medal 1914–20", year:1914, yearLabel:"1914–20", country:"United Kingdom", region:"uk", denom:"Campaign medal", dkey:"war medal", metal:"Silver", mkey:"silver", grade:"Good Very Fine (GVF)", price:45, status:S.up, when:"Auction 12 Nov 2026", rarity:"common", beginner:true, art:{k:"medal", m:"silver", r:"linear-gradient(90deg,#1c3f7a 0 12%,#fff 12% 17%,#111 17% 22%,#e07b2a 22% 78%,#111 78% 83%,#fff 83% 88%,#1c3f7a 88%)"}, note:"Named to a serving soldier — every one tells a family history story."},
+  {id:"d2", lot:"Lot 615", type:"medal", name:"WWI Allied Victory Medal", year:1919, country:"United Kingdom", region:"uk", denom:"Campaign medal", dkey:"victory medal", metal:"Bronze", mkey:"base", grade:"Very Fine (VF)", price:22, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"medal", m:"gold", r:"linear-gradient(90deg,#b62a2a,#e3a02a 20%,#3c9a4a 40%,#2c5aa0 50%,#3c9a4a 60%,#e3a02a 80%,#b62a2a)"}, note:"The ‘rainbow ribbon’ Victory Medal — an affordable first medal."},
+  {id:"d3", lot:"Lot 620", type:"medal", name:"1897 Queen Victoria Diamond Jubilee Medal", year:1897, country:"United Kingdom", region:"uk", denom:"Commemorative medal", dkey:"jubilee medal", metal:"Silver", mkey:"silver", grade:"Extremely Fine (EF)", price:65, status:S.up, when:"Auction 12 Nov 2026", rarity:"common", beginner:true, art:{k:"medal", m:"silver", r:"linear-gradient(90deg,#fff 0 18%,#1d3c8f 18% 82%,#fff 82%)"}, note:"Official small silver medal celebrating Victoria’s 60 years on the throne."},
+  {id:"d4", lot:"Lot 604", type:"medal", name:"Crimea Medal, Sebastopol Clasp", year:1854, yearLabel:"1854–56", country:"United Kingdom", region:"uk", denom:"Campaign medal", dkey:"crimea", metal:"Silver", mkey:"silver", grade:"Good Very Fine (GVF)", price:420, status:S.up, when:"Auction 12 Nov 2026", rarity:"rare", beginner:false, art:{k:"medal", m:"silver", r:"linear-gradient(90deg,#9fc6e4 0 12%,#f4f0e6 12% 88%,#9fc6e4 88%)"}, note:"Victorian campaign medal with the sought-after Sebastopol clasp."},
+  // Tokens
+  {id:"t1", lot:"Lot 702", type:"token", name:"1794 Middlesex Conder Halfpenny Token", year:1794, country:"United Kingdom", region:"uk", denom:"Halfpenny token", dkey:"halfpenny", metal:"Copper", mkey:"base", grade:"Extremely Fine (EF)", price:35, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"token", m:"base", a:"½d"}, note:"Georgian trade token issued by merchants when official coin was scarce."},
+  {id:"t2", lot:"Lot 708", type:"token", name:"1811 Bank of England 18 Pence Token", year:1811, country:"United Kingdom", region:"uk", denom:"18 Pence bank token", dkey:"bank token", metal:"Silver", mkey:"silver", grade:"Very Fine (VF)", price:70, status:S.up, when:"Auction 12 Nov 2026", rarity:"common", beginner:true, art:{k:"token", m:"silver", a:"18d"}, note:"Emergency silver issued during the Napoleonic Wars."},
+  {id:"t3", lot:"MP-3302", type:"token", name:"1813 Wellington Halfpenny Token", year:1813, country:"United Kingdom", region:"uk", denom:"Halfpenny token", dkey:"halfpenny", metal:"Copper", mkey:"base", grade:"Fine (F)", price:15, status:S.mk, when:"Available now", rarity:"common", beginner:true, art:{k:"token", m:"base", a:"½d"}, note:"Celebrates the Duke of Wellington’s Peninsular victories."},
+  {id:"t4", lot:"Lot 699", type:"token", name:"1791 Anglesey ‘Druid’ Penny Token", year:1791, country:"United Kingdom", region:"uk", denom:"Penny token", dkey:"penny", metal:"Copper", mkey:"base", grade:"Good Very Fine (GVF)", price:110, status:S.live, when:"Ends 30 Sep 2026", rarity:"scarce", beginner:false, art:{k:"token", m:"base", a:"1d"}, note:"The famous Parys Mine Company ‘Druid’, the token that started the series."}
+];
+CATALOG.forEach(it=>{
+  const y=it.year;
+  it.era = y<500 ? "ancient" : y<1837 ? "georgian" : y<1901 ? "victorian" : y<1911 ? "edwardian" : "modern";
+});
+
+const AUCTIONS = [
+  {d:"8", m:"Oct 2026", title:"Autumn British & World Coins", lots:612, info:"Online and in-room"},
+  {d:"24", m:"Oct 2026", title:"Banknotes & Paper Money", lots:285, info:"Online"},
+  {d:"12", m:"Nov 2026", title:"Medals, Tokens & Militaria", lots:340, info:"Online and in-room"},
+  {d:"10", m:"Dec 2026", title:"Winter Collectors’ Sale", lots:704, info:"Online and in-room"}
+];
+
+const DEMOS = [
+  {label:"Find a Collectible", text:"I’m looking for a British silver coin from the Victorian era under £200."},
+  {label:"Beginner Collector", text:"I’m new to coin collecting. Can you help me get started?"},
+  {label:"Auction Help", text:"How does bidding work?"},
+  {label:"Find Something Under £100", text:"I want something under £100."},
+  {label:"Selling on Silverhammer", text:"How can I sell my collection?"}
+];
+const STARTERS = [
+  {label:"🔎 Find a coin", text:"Find a coin"},
+  {label:"🪙 Help me discover collectibles", text:"Help me discover collectibles"},
+  {label:"🏛️ Find historical coins", text:"Find historical coins"},
+  {label:"💷 Find items within my budget", text:"Find items within my budget"},
+  {label:"🔨 Explore upcoming auctions", text:"Explore upcoming auctions"},
+  {label:"❓ How does bidding work?", text:"How does bidding work?"}
+];
+
+/* =====================================================================
+   STATE — preferences are remembered for the whole demo session
+   ===================================================================== */
+const state = {
+  profile:{},        // remembered collector preferences
+  search:{},         // current search context (refined turn by turn)
+  flow:null,         // guided flow step (e.g. beginner)
+  matches:[], shown:0, asked:false, searches:0,
+  watch:new Set(), lastPrice:null
+};
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n=>"£"+Number(n).toLocaleString("en-GB");
+const now = ()=>new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
+const byId = id=>CATALOG.find(i=>i.id===id);
+const num = s=>parseInt(String(s).replace(/,/g,""),10);
+const pick = arr=>arr[Math.floor(Math.random()*arr.length)];
+
+function artHTML(it){
+  const a=it.art;
+  if(a.k==="note") return `<div class="note n-${a.t}"><span>${esc(a.a)}</span></div>`;
+  if(a.k==="medal") return `<div class="medal"><div class="ribbon" style="--rib:${a.r}"></div><div class="coin m-${a.m}"><span class="coin-face"></span></div></div>`;
+  return `<div class="coin m-${a.m}${a.k==="token"?" token":""}"><span class="coin-face"><b>${esc(a.a)}</b><i>${esc(it.yearLabel|| (it.year>0?it.year:""))}</i></span></div>`;
+}
+const statusLabel = s=>({live:"Live auction", upcoming:"Upcoming auction", market:"Marketplace"}[s]);
+const priceLabel = s=>({live:"Current bid", upcoming:"Starting bid", market:"Buy now"}[s]);
+const yearText = it=>it.yearLabel || String(it.year);
+
+/* =====================================================================
+   LANGUAGE UNDERSTANDING (lightweight intent + entity extraction)
+   ===================================================================== */
+function parseBudget(t){
+  let m;
+  if((m=t.match(/£\s?(\d[\d,]*)\s*(?:-|–|—|to|and)\s*£?\s?(\d[\d,]*)/))) return {min:num(m[1]),max:num(m[2])};
+  if((m=t.match(/\b(\d{2,4})\s*(?:-|–|to)\s*(\d{2,4})\s*(?:pounds|quid|gbp)\b/))) return {min:num(m[1]),max:num(m[2])};
+  if((m=t.match(/£\s?(\d[\d,]*)\s*\+/))) return {min:num(m[1])};
+  if((m=t.match(/(?:over|above|more than|at least|upwards of|in excess of)\s*£\s?(\d[\d,]*)/))) return {min:num(m[1])};
+  if((m=t.match(/(?:around|about|roughly|approx\w*|circa|near)\s*£\s?(\d[\d,]*)/))) { const v=num(m[1]); return {min:Math.round(v*.7),max:Math.round(v*1.3)}; }
+  if((m=t.match(/(?:under|below|less than|up to|upto|max(?:imum)?|no more than|within|at most|cheaper than|budget(?: is| of)?|spend)\s*(?:of\s*)?£\s?(\d[\d,]*)/))) return {max:num(m[1])};
+  if((m=t.match(/(?:under|below|less than|up to|no more than|at most)\s+(\d{2,3})\b(?!\s*(?:bc|ad))/))) return {max:num(m[1])};
+  if((m=t.match(/£\s?(\d[\d,]*)/))) return {max:num(m[1])};
+  // "200 pounds", "budget 150", "I have 80", "stretch to 120", Hinglish "100 tak", "mere paas 80 hai"
+  const ok=v=>v>=5 && v<100000 && !(v>=1500 && v<=2030 && !/pounds|quid|gbp/.test(t));
+  if((m=t.match(/\b(\d[\d,]*)\s*(?:pounds|quid|gbp)\b/)) && ok(num(m[1]))) return {max:num(m[1])};
+  if((m=t.match(/\b(\d[\d,]*)\s*(?:tak|se kam|ke andar|ke under|ke neeche|ke niche)\b/)) && ok(num(m[1]))) return {max:num(m[1])};
+  if((m=t.match(/(?:budget|spend|afford|i have|i've got|i got|got|mere paas|mera budget|stretch(?: it)? to|increase (?:it |my budget )?to|raise (?:it |my budget )?to|go up to|keep it under)\D{0,14}?(\d[\d,]*)\b/)) && ok(num(m[1]))) return {max:num(m[1])};
+  return null;
+}
+
+function parse(raw){
+  const t = " " + raw.toLowerCase().replace(/[’‘]/g,"'").replace(/\s+/g," ").trim() + " ";
+  const f = {};
+  const b = parseBudget(t); if(b) Object.assign(f,b);
+  const noMoney = t.replace(/£\s?\d[\d,]*\+?/g," ");
+
+  // Year / decade
+  let m;
+  if((m=noMoney.match(/\b(1[5-9]\d0)'?s\b/))) { f.yearMin=num(m[1]); f.yearMax=num(m[1])+9; }
+  else if((m=noMoney.match(/\b(1[5-9]\d\d|20[0-2]\d)\b/))) f.year=num(m[1]);
+
+  // Type
+  const types=[];
+  if(/\bcoins?\b/.test(t)) types.push("coin");
+  if(/bank ?notes?|paper money|\bnotes?\b/.test(t)) types.push("banknote");
+  if(/\bmedals?\b/.test(t)) types.push("medal");
+  if(/\btokens?\b/.test(t)) types.push("token");
+
+  // Denomination (implies coin unless a token/note)
+  const denoms=[["half ?crowns?","halfcrown"],["double florins?","florin"],["florins?","florin"],["crowns?","crown"],["half sovereigns?","sovereign"],["sovereigns?","sovereign"],["shillings?","shilling"],["sixpences?","sixpence"],["groats?|fourpences?","groat"],["farthings?","farthing"],["halfpenn(?:y|ies)","halfpenny"],["penn(?:y|ies)","penny"],["dollars?","dollar"],["francs?","franc"],["marks?\\b","mark"],["rupees?","rupee"],["tetradrachms?|drachms?","tetradrachm"],["follis|folles","follis"]];
+  for(const [re,key] of denoms){ if(new RegExp("\\b(?:"+re+")").test(t)){ f.denom=key; break; } }
+  if(f.denom==="shilling" && /10 ?shillings?|ten shillings?/.test(t)){ delete f.denom; if(!types.includes("banknote")) types.push("banknote"); }
+  if(f.denom && !types.length) types.push("coin");
+  if(/\bgold sovereigns?\b/.test(t) && !types.length) types.push("coin");
+  if(types.length) f.type=types;
+
+  // Era
+  if(/victorian|queen victoria|\bvictoria\b/.test(t)) f.era="victorian";
+  else if(/edwardian|edward vii/.test(t)) f.era="edwardian";
+  else if(/georgian|george (iii|iv)\b|william iv|regency/.test(t)) f.era="georgian";
+  else if(/\bmodern\b|20th century|contemporary|elizabeth ii|george (v|vi)\b|coronation/.test(t)) f.era="modern";
+  else if(/ancient|roman|greek|antiquity|byzantine/.test(t)) f.era="ancient";
+
+  // Region / country
+  if(/british|britain|\buk\b|english|england|united kingdom|scottish|scotland/.test(t)) f.region="uk";
+  if(/\bworld\b|foreign|international|overseas/.test(t)) f.region="world";
+  const countries=[["american|\busa\b|united states|u\\.s\\.","usa"],["french|france","france"],["german|germany|prussia","germany"],["india|indian","india"],["roman|rome","rome"],["greek|greece|athens","greece"]];
+  for(const [re,key] of countries){ if(new RegExp(re).test(t)){ f.ckey=key; f.region="world"; break; } }
+
+  // Metal
+  if(["victorian","edwardian","georgian"].includes(f.era) && !f.region) f.region="uk";
+  if(/\bsilver\b/.test(t)) f.metal="silver";
+  else if(/\bgold\b/.test(t)) f.metal="gold";
+  else if(/copper|bronze|cupro/.test(t)) f.metal="base";
+
+  if(/\b(rare|rarer|rarest|scarce|special|investment|high.?end|valuable|centre ?piece|center ?piece|standout|prestige)\b/.test(t)) f.rare=true;
+  if(/beginner|new collector|starter|entry.?level|first (coin|piece|purchase)|affordable|inexpensive/.test(t)) f.beginner=true;
+  if(/histor|antique|\bold\b|older/.test(t)) f.historical=true;
+
+  return {t, f};
+}
+
+const has = (t,re)=>re.test(t);
+const TOPICAL = ["type","region","ckey","era","year","yearMin","denom","historical"];
+function isTopical(f){ return TOPICAL.some(k=>f[k]!=null); }
+function hasBudget(f){ return f.min!=null || f.max!=null; }
+
+/* =====================================================================
+   SEARCH ENGINE over demo catalogue
+   ===================================================================== */
+function matchItem(it,f){
+  if(f.type && !f.type.includes(it.type)) return false;
+  if(f.region && it.region!==f.region) return false;
+  if(f.ckey && it.ckey!==f.ckey) return false;
+  if(f.era && it.era!==f.era) return false;
+  if(f.metal && it.mkey!==f.metal && !(f.metal==="base" && it.art.m==="cupro")) return false;
+  if(f.min!=null && it.price<f.min) return false;
+  if(f.max!=null && it.price>f.max) return false;
+  if(f.denom && !it.dkey.includes(f.denom)) return false;
+  if(f.year!=null && Math.abs(it.year-f.year)>(f._yr||0)) return false;
+  if(f.yearMin!=null && (it.year<f.yearMin || it.year>f.yearMax)) return false;
+  if(f.rare && it.rarity==="common") return false;
+  if(f.historical && it.year>=1901) return false;
+  return true;
+}
+function sortItems(list,f){
+  const rank={rare:2,scarce:1,common:0};
+  return list.slice().sort((a,b)=>{
+    if(f.year!=null) return Math.abs(a.year-f.year)-Math.abs(b.year-f.year);
+    if(f.rare) return rank[b.rarity]-rank[a.rarity] || b.price-a.price;
+    if(f.beginner) return (b.beginner-a.beginner) || a.price-b.price;
+    if(f.historical) return a.year-b.year;
+    if(f.max!=null) return b.price-a.price;
+    return (a.status==="live"?-1:0)-(b.status==="live"?-1:0) || a.price-b.price;
+  });
+}
+function find(f){
+  let g={...f}, relaxed=[];
+  if(g.year!=null) g._yr=0;
+  let res=CATALOG.filter(i=>matchItem(i,g));
+  if(g.year!=null){ // add near-dated items alongside exact matches
+    const exact=res.length; g._yr=6; res=CATALOG.filter(i=>matchItem(i,g));
+    if(!exact && res.length) relaxed.push("year");
+    if(!res.length){ g._yr=25; res=CATALOG.filter(i=>matchItem(i,g)); if(res.length) relaxed.push("year"); }
+    g.exactYear=exact;
+  }
+  const order=["denom","ckey","era","metal","rare","historical","region","yearMin"];
+  for(const k of order){
+    if(res.length) break;
+    if(g[k]!=null){ delete g[k]; if(k==="yearMin") delete g.yearMax; relaxed.push(k); res=CATALOG.filter(i=>matchItem(i,g)); }
+  }
+  if(!res.length && g.max!=null){ g.max=Math.round(g.max*1.6); relaxed.push("budget"); res=CATALOG.filter(i=>matchItem(i,g)); }
+  if(!res.length && g.min!=null){ delete g.min; relaxed.push("budget"); res=CATALOG.filter(i=>matchItem(i,g)); }
+  if(!res.length && g.type){ delete g.type; relaxed.push("type"); res=CATALOG.filter(i=>matchItem(i,g)); }
+  return {res:sortItems(res,f), relaxed, g};
+}
+
+/* Natural description of the active filters */
+const ERA = {victorian:"Victorian", edwardian:"Edwardian", georgian:"Georgian", modern:"modern", ancient:"ancient"};
+const CTRY = {usa:"American", france:"French", germany:"German", india:"Indian", rome:"Roman", greece:"Greek"};
+const METAL = {silver:"silver", gold:"gold", base:"copper and bronze"};
+function budgetText(f){
+  if(f.min!=null && f.max!=null) return `between ${money(f.min)} and ${money(f.max)}`;
+  if(f.max!=null) return `under ${money(f.max)}`;
+  if(f.min!=null) return `from ${money(f.min)} upwards`;
+  return "";
+}
+function typeNoun(f){
+  const t=f.type||[];
+  if(f.denom && t.includes("coin")){ const d={halfcrown:"halfcrowns",florin:"florins",crown:"crowns",sovereign:"sovereigns",shilling:"shillings",sixpence:"sixpences",groat:"groats",farthing:"farthings",halfpenny:"halfpennies",penny:"pennies",dollar:"dollars",franc:"franc pieces",mark:"mark pieces",rupee:"rupees",tetradrachm:"tetradrachms",follis:"folles"}; return d[f.denom]||"coins"; }
+  if(t.length===1) return {coin:"coins",banknote:"banknotes",medal:"medals",token:"tokens"}[t[0]];
+  if(t.length===2 && t.includes("medal") && t.includes("token")) return "medals and tokens";
+  return "collectibles";
+}
+function describe(f){
+  const w=[];
+  if(f.rare) w.push("rarer");
+  if(f.beginner) w.push("beginner-friendly");
+  if(f.historical && !f.era) w.push("historical");
+  if(f.era) w.push(ERA[f.era]);
+  if(f.ckey) w.push(CTRY[f.ckey]); else if(f.region==="uk") w.push("British"); else if(f.region==="world") w.push("world");
+  if(f.metal) w.push(METAL[f.metal]);
+  w.push(typeNoun(f));
+  let s=w.join(" ");
+  if(f.year!=null) s+=` from around ${f.year}`;
+  if(f.yearMin!=null) s+=` from the ${f.yearMin}s`;
+  const bt=budgetText(f); if(bt) s+=" "+bt;
+  return s;
+}
+function whyFor(it,f){
+  const r=[];
+  if(f.year!=null && it.year===f.year) r.push(`dated ${f.year}`);
+  else if(f.year!=null) r.push(`close in date (${yearText(it)})`);
+  if(f.era && it.era===f.era) r.push(ERA[f.era]);
+  if(f.region==="uk" && it.region==="uk" && !f.era) r.push("British");
+  if(f.metal && it.mkey===f.metal) r.push(METAL[f.metal]);
+  if(hasBudget(f) && matchItem(it,{min:f.min,max:f.max})) r.push(fitPhrase(it,f));
+  if(f.rare && it.rarity!=="common") r.push(it.rarity==="rare"?"genuinely rare":"scarce type");
+  if(f.beginner && it.beginner) r.push("easy first purchase");
+  if(f.historical && it.year<1850) r.push("over 170 years old");
+  if(!r.length) return "";
+  const s=r.join(", ");
+  return s.charAt(0).toUpperCase()+s.slice(1)+".";
+}
+
+/* ---------- Budget intelligence ---------- */
+function budgetShort(b){
+  if(!b||!hasBudget(b)) return "";
+  if(b.min!=null && b.max!=null) return `${money(b.min)}–${money(b.max)}`;
+  if(b.max!=null) return money(b.max);
+  return `${money(b.min)}+`;
+}
+function fitPhrase(it,f){
+  if(f.max!=null){
+    const diff=f.max-it.price;
+    if(diff<=0) return "right at your budget";
+    if(it.price>=f.max*.85) return `makes the most of your budget, just ${money(diff)} under`;
+    if(it.price<=f.max*.4) return `well within budget, leaving ${money(diff)} for another piece`;
+    return `${money(diff)} under your budget`;
+  }
+  if(f.min!=null) return `in your ${money(f.min)}+ range`;
+  return "";
+}
+const groupOf=i=> i.type==="coin" ? (i.region==="uk"?"British coins":"World coins") : ({banknote:"Banknotes",medal:"Medals",token:"Tokens"})[i.type];
+const valueScore=i=> i.price*(i.rarity==="rare"?1.3:i.rarity==="scarce"?1.15:1) + (i.status==="live"?4:0);
+const listJoin=a=> a.length<2 ? (a[0]||"") : a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+
+function stretchPick(e){
+  if(e.max==null) return null;
+  const g={...e}; delete g.min; delete g.max;
+  return CATALOG.filter(i=>matchItem(i,g) && i.price>=Math.max(e.max+10, e.max*1.05) && i.price<=Math.max(e.max*1.3, e.max+30))
+    .sort((a,b)=>a.price-b.price)[0] || null;
+}
+
+/* Budget-led discovery: "I have £80", "what can I get for £150?", "something under £100" */
+function budgetDiscovery(f, prev){
+  state.search={}; state.asked=true;
+  const p=state.profile, b={min:f.min,max:f.max};
+  const e={...b};
+  if(p.type) e.type=p.type; if(p.region) e.region=p.region; if(p.era) e.era=p.era;
+  const prefsUsed=!!(e.type||e.region||e.era);
+  let pool=CATALOG.filter(i=>matchItem(i,e)), widened=false;
+  if(pool.length<2 && prefsUsed){ pool=CATALOG.filter(i=>matchItem(i,b)); widened=true; }
+
+  const changed = prev && hasBudget(prev) && budgetShort(prev)!==budgetShort(b);
+  const lead = changed
+    ? (b.max!=null && prev.max!=null && b.max>prev.max ? `Moving your budget from ${budgetShort(prev)} up to ${budgetShort(b)} opens up more choice.`
+       : b.max!=null && prev.max!=null && b.max<prev.max ? `No problem, bringing it down from ${budgetShort(prev)} to ${budgetShort(b)}.`
+       : `Updated your budget to ${budgetShort(b)}.`)
+    : pick(["Great, that gives me something to work with.","Perfect, that’s a really helpful starting point.","Nice, that’s a good budget to work with."]);
+
+  // Nothing affordable: be honest, show the closest
+  if(!pool.length){
+    const cheapest=CATALOG.slice().sort((a,b)=>a.price-b.price).slice(0,3);
+    state.matches=cheapest; state.shown=3;
+    return {text:`${lead} Honestly, nothing in the demo catalogue is ${budgetText(b)} right now. The most affordable pieces start at ${money(cheapest[0].price)}, so here are the closest options.`,
+      cards:cheapest, why:it=>`${money(it.price-(b.max||0))} above your budget, the nearest fit.`,
+      after:"Would you like me to keep an eye out for pieces at your price?", quick:[`Stretch to ${money(cheapest[0].price)}`,"Start a new search"]};
+  }
+
+  // Best piece from each collecting area, so the answer feels like a curated shortlist
+  const groups={};
+  pool.forEach(i=>{ const g=groupOf(i); (groups[g]=groups[g]||[]).push(i); });
+  Object.values(groups).forEach(a=>a.sort((x,y)=>valueScore(y)-valueScore(x)));
+  const names=Object.keys(groups).sort((a,b)=>valueScore(groups[b][0])-valueScore(groups[a][0]));
+  let picks=names.map(n=>groups[n][0]).slice(0,4);
+  if(picks.length<3) picks=picks.concat(pool.filter(i=>!picks.includes(i)).sort((a,b)=>valueScore(b)-valueScore(a))).slice(0,3);
+  state.matches=picks.concat(pool.filter(i=>!picks.includes(i)).sort((a,b)=>valueScore(b)-valueScore(a)));
+  state.shown=picks.length;
+
+  const scope = b.min!=null && b.max!=null ? `Between ${money(b.min)} and ${money(b.max)}` : b.max!=null ? `Within ${money(b.max)}` : `From ${money(b.min)} upwards`;
+  const areas = names.map(n=>n.toLowerCase().replace("british","British"));
+  let text = `${lead} ${scope}, there are ${pool.length} piece${pool.length>1?"s":""} in the demo catalogue across ${listJoin(areas)}.`;
+  if(prefsUsed && !widened) text += ` I’ve kept to your ${describe({type:e.type,region:e.region,era:e.era})} focus.`;
+  if(widened) text += " Only a few match your saved preferences at that price, so I’ve included other areas too.";
+  text += names.length>1 ? " Here’s the standout from each area:" : " Here are the best of them:";
+
+  const stretch=stretchPick(e) || (widened?null:stretchPick(b));
+  let after = names.length>1 ? "Would you like me to focus on one of these areas?" : "Want to see more, or try a different area?";
+  if(stretch) after = `If you can stretch to ${money(stretch.price)}, the ${stretch.name} comes into reach. ` + after;
+  const quick=[];
+  if(stretch) quick.push(`Stretch to ${money(stretch.price)}`);
+  names.slice(0,3).forEach(n=>quick.push(n));
+  if(state.matches.length>state.shown) quick.push("Show more");
+
+  return {text, cards:picks, why:it=>{ const f2=fitPhrase(it,b); return `${names.length>1?"Top "+groupOf(it).replace(/s$/,"").toLowerCase().replace("british","British")+" pick":"Strong pick"}, ${f2}.`; },
+    after, quick:quick.slice(0,5)};
+}
+
+/* =====================================================================
+   DIALOGUE MANAGER
+   ===================================================================== */
+function effective(){
+  // search context wins; profile fills in anything not specified
+  const p=state.profile, s=state.search, e={...s}, applied=[];
+  if(!e.type && p.type){ e.type=p.type; applied.push("type"); }
+  if(!e.region && !e.ckey && p.region && !(e.era==="ancient")){ e.region=p.region; applied.push("region"); }
+  if(!e.era && p.era && !e.year && !e.yearMin){ e.era=p.era; applied.push("era"); }
+  if(!hasBudget(e) && hasBudget(p) && !e.rare){ e.min=p.min; e.max=p.max; applied.push("budget"); }
+  return {e, applied};
+}
+function profileLabel(){
+  const p=state.profile, out=[];
+  if(p.region||p.type) out.push(describe({region:p.region,type:p.type}).replace(/^\w/,c=>c.toUpperCase()));
+  if(p.era) out.push(ERA[p.era].replace(/^\w/,c=>c.toUpperCase())+" focus");
+  if(hasBudget(p)) out.push(budgetText(p).replace(/^\w/,c=>c.toUpperCase()));
+  return out;
+}
+function rememberBudget(f){ if(hasBudget(f)){ state.profile.min=f.min; state.profile.max=f.max; } }
+
+function respond(raw, opts={}){
+  const {t,f}=parse(raw);
+  const clean=t.trim();
+
+  // ---- Guided beginner flow ----
+  if(state.flow==="beginner-interest"){
+    const map=[[/british/,{type:["coin"],region:"uk"},"British coins"],[/world|foreign/,{type:["coin"],region:"world"},"world coins"],[/bank ?notes?|paper/,{type:["banknote"]},"banknotes"],[/medal|token/,{type:["medal","token"]},"medals and tokens"],[/not sure|don'?t know|unsure|anything|no idea|mix/,{},"a bit of everything"]];
+    const hit=map.find(([re])=>re.test(t));
+    if(hit){
+      state.flow="beginner-budget"; state.beginner={f:hit[1], label:hit[2]};
+      Object.assign(state.profile, hit[1].type?{type:hit[1].type}:{}, hit[1].region?{region:hit[1].region}:{});
+      renderPrefs();
+      return {text: hit[2]==="a bit of everything" ? "No problem — I’ll show a varied mix so you can see what appeals. What budget feels comfortable for a first piece?" : `Lovely choice — ${hit[2]} are a great place to start. What budget feels comfortable for a first piece?`,
+        quick:["Under £50","£50–£100","£100–£250","£250+"]};
+    }
+  }
+  if(state.flow==="beginner-budget" && hasBudget(f)){
+    state.flow=null; rememberBudget(f); renderPrefs();
+    const base={...state.beginner.f, min:f.min, max:f.max, beginner:true};
+    let {res}=find(base);
+    if(!state.beginner.f.type){ // mixed: one of each type if possible
+      const seen=new Set(); res=res.filter(i=>!seen.has(i.type) && seen.add(i.type));
+    }
+    if(res.length<3){ // top up with the closest beginner-friendly pieces
+      const pool=CATALOG.filter(i=>i.beginner && !res.includes(i) && (!base.type||base.type.includes(i.type)));
+      const target=((f.min||0)+(f.max||f.min*1.5||100))/2;
+      pool.sort((a,b)=>Math.abs(a.price-target)-Math.abs(b.price-target));
+      const pool2=CATALOG.filter(i=>!i.beginner && !res.includes(i) && (!base.type||base.type.includes(i.type))).sort((a,b)=>Math.abs(a.price-target)-Math.abs(b.price-target));
+      res=res.concat(pool,pool2);
+    }
+    const items=res.slice(0,3);
+    state.search={...state.beginner.f}; state.matches=res; state.shown=items.length;
+    return {text:`Here’s a personalised starting point for ${state.beginner.label} ${budgetText(f)}. I’ve chosen pieces that are easy to understand, well documented and good value.`,
+      heading:"Recommended for You", cards:items, why:it=>it.note,
+      after:"Would you like to know what the condition grades mean, or see how bidding works?",
+      quick:["What do the grades mean?","How does bidding work?","Show more like these"]};
+  }
+  if(state.flow && /^(skip|cancel|stop)$/.test(clean)) { state.flow=null; return {text:"No problem. What would you like to look at instead?", quick:STARTERS.slice(0,4).map(s=>s.text)}; }
+
+  // ---- Reset ----
+  if(/start over|start a new search|new search|reset|clear (my )?(preferences|search)|something else entirely/.test(t)){
+    state.search={}; state.asked=false; state.flow=null;
+    if(/preferences|start over|reset/.test(t)){ state.profile={}; renderPrefs(); }
+    return {text:"Fresh start. What would you like to find? You can describe it any way you like — era, country, metal, year or budget.", quick:["Victorian silver","Banknotes under £150","Something rare","Gold sovereigns"]};
+  }
+
+  // ---- Small talk ----
+  if(/^(hi|hello|hey|hiya|good (morning|afternoon|evening))\b[!. ]*$/.test(clean))
+    return {text:"Hello! What are you collecting at the moment — or shall I help you discover something new?", quick:STARTERS.slice(0,4).map(s=>s.text)};
+  if(/^(thanks|thank you|cheers|ta|great|perfect|brilliant)\b/.test(clean) && !isTopical(f))
+    return {text:"You’re welcome. Anything else you’d like to find — or shall I show your watchlist?", quick:["Show my watchlist","Explore upcoming auctions","Find something rare"]};
+
+  // ---- Auction help ----
+  if(/how (do|does|can|would) (i |you |one )?(bid|place a bid|bidding|win)|bidding work|how.*auctions? work|place a bid|register to bid|bidding process/.test(t)){
+    return {text:"Bidding with Silverhammer is straightforward. Here’s how it typically works:",
+      steps:[["Find an auction","Browse the auction calendar or ask me to find lots that match your interests."],
+             ["Review the lot","Check photos, the description, grade and estimate. Ask questions before bidding."],
+             ["Place a bid","Register, then bid live online or leave a maximum bid in advance."],
+             ["Monitor the auction","Follow the lot on your watchlist and get outbid alerts."],
+             ["Win the lot","If yours is the highest bid when the hammer falls, the lot is yours."],
+             ["Payment and next steps","You’ll receive an invoice including any buyer’s premium, then arrange delivery or collection."]],
+      fine:"Always check the specific sale’s terms for fees and deadlines.",
+      cta:[{label:"Explore Auctions", say:"Explore upcoming auctions"}],
+      quick:["What is buyer's premium?","What do the grades mean?"]};
+  }
+  // ---- Selling (secondary journey) ----
+  if(/\b(sell|selling|consign|valuation|valued|value my|auction my|get rid of)\b/.test(t)){
+    return {text:"Silverhammer can help guide you through the selling process. I can provide information about preparing your items, the selling process and relevant next steps.",
+      steps:[["Prepare your items","Keep coins in their holders and don’t clean them — cleaning can reduce value."],
+             ["Request a valuation","Share photos and a short description of your collection."],
+             ["Agree terms","Silverhammer’s team confirms estimates, fees and the right sale for your items."],
+             ["Sale and settlement","Your items are catalogued and offered, with payment after the sale."]],
+      cta:[{label:"Learn About Selling", toast:"In production, this opens Silverhammer’s selling and consignment page."}],
+      quick:["Back to browsing","How does bidding work?"]};
+  }
+  // ---- Beginner journey ----
+  if(/new to|get(ting)? started|start collecting|just starting|help me start|never collected|first time collect/.test(t)){
+    state.flow="beginner-interest";
+    return {text:"Absolutely. I can help you explore Silverhammer’s collectibles based on your interests and budget. What are you most interested in?",
+      quick:["British Coins","World Coins","Banknotes","Medals & Tokens","Not Sure Yet"]};
+  }
+  // ---- Auctions calendar ----
+  if(/(upcoming|next|explore|future|forthcoming|browse) (sales?|auctions?)|auction (dates|calendar|schedule)|when is the next|what auctions/.test(t) && !hasBudget(f)){
+    return {text:"Here are the next sales in the demo calendar. I can pull out lots that match your interests from any of them.", auctions:AUCTIONS,
+      quick:["Show me live lots","Find items within my budget","How does bidding work?"]};
+  }
+  if(/live lots|live auctions?|ending soon/.test(t)){
+    const res=CATALOG.filter(i=>i.status==="live").sort((a,b)=>a.when.localeCompare(b.when));
+    state.matches=res; state.shown=4; state.search={};
+    return {text:"These lots are live now in the demo, soonest-ending first.", cards:res.slice(0,4), quick:res.length>4?["Show more","Set a budget"]:["Set a budget"]};
+  }
+  // ---- Watchlist ----
+  if(/watch ?list|saved items|my saved|what am i watching/.test(t)){
+    const items=[...state.watch].map(byId);
+    if(!items.length) return {text:"Your watchlist is empty so far. Tap “Add to Watchlist” on any item and I’ll keep track of it here.", quick:["Find a coin","Show me live lots"]};
+    return {text:`You’re watching ${items.length} item${items.length>1?"s":""}. In production, you’d get alerts before each lot closes.`, cards:items};
+  }
+  // ---- Knowledge answers ----
+  if(/grade|grading|what does (ef|vf|gvf|unc|bu|fdc|gf) mean|condition (mean|scale)/.test(t) && !hasBudget(f)){
+    return {text:"Coin grades describe wear, from most worn to best preserved. The common UK scale runs: Fine (F) — clear wear but all main details visible; Very Fine (VF) — light wear on high points; Extremely Fine (EF) — minimal wear, much original detail; Uncirculated (UNC) — no wear at all. ‘Good’ in front (e.g. GVF) means slightly better than the grade named.",
+      quick:["Show me EF coins under £100","Find a coin"]};
+  }
+  if(/buyer'?s premium|fees|commission|extra charges/.test(t)){
+    return {text:"The buyer’s premium is a percentage added to the hammer price, set out in each sale’s terms. When I show a lot in production, I could show an estimated total including premium so there are no surprises.",
+      cta:[{label:"View terms", toast:"In production, this opens Silverhammer’s current terms and conditions."}], quick:["How does bidding work?","Find a coin"]};
+  }
+  if(/shipping|delivery|postage|deliver|collect(ion)? in person/.test(t) && !isTopical(f)){
+    return {text:"Won lots are usually posted securely and insured, or collected in person. Costs depend on the item and destination — in production I’d quote these directly from Silverhammer’s policy pages.", quick:["How does bidding work?","Find a coin"]};
+  }
+  if(/genuine|authentic|fake|forger/.test(t)){
+    return {text:"Every lot in a specialist sale is examined and described by experienced numismatists. If you have questions about a particular lot, I can help you contact the team before you bid.", quick:["How does bidding work?","What do the grades mean?"]};
+  }
+
+  // ---- Collector profile statements ----
+  if(/\bi (mainly |mostly |usually |only )?collect\b|i'?m collecting|my collection (is|focuses)|i (usually|normally|tend to) spend|my budget is|i focus on/.test(t)){
+    if(f.type) state.profile.type=f.type;
+    if(f.region) state.profile.region=f.region;
+    if(f.era) state.profile.era=f.era;
+    if(f.metal) state.profile.metal=f.metal;
+    rememberBudget(f);
+    renderPrefs();
+    state.search={}; state.asked=true;
+    const what=describe({type:state.profile.type,region:state.profile.region,era:state.profile.era});
+    const bt=hasBudget(state.profile)?` in the ${state.profile.min!=null&&state.profile.max!=null?money(state.profile.min)+"–"+money(state.profile.max):budgetText(state.profile)} range`:"";
+    if(!state.profile.era) return {text:`Got it. I’ll focus on ${what}${bt}. Would you like me to prioritise Victorian, Edwardian or modern pieces?`, quick:["Victorian","Edwardian","Modern","Show All"]};
+    return {text:`Got it. I’ll focus on ${what}${bt}. Shall I show what’s available now?`, quick:["Show All","Something rarer","Under £100"]};
+  }
+
+  // ---- Pagination and price nudges ----
+  if(/^(show )?more( like these| please)?$|see more|show more|any (others|more)|next ones/.test(clean)){
+    if(state.matches.length>state.shown){
+      const next=state.matches.slice(state.shown,state.shown+3); state.shown+=next.length;
+      const left=state.matches.length-state.shown;
+      return {text: left?"Here are a few more.":"Here are the last few matches.", cards:next, why:it=>whyFor(it,effective().e), quick:left?["Show more","Start a new search"]:["Something rarer","Start a new search"]};
+    }
+    return {text:"That’s everything matching in the demo catalogue. Want to widen the search?", quick:["Show all British coins","World coins","Start a new search"]};
+  }
+  if(/cheaper|less expensive|lower (price|budget)|too expensive|more affordable/.test(t)){
+    const cur=state.matches.slice(0,state.shown); const low=cur.length?Math.min(...cur.map(i=>i.price)):100;
+    state.search.max=Math.max(15,Math.floor(low*0.9)); delete state.search.min;
+    return runSearch({refine:true, note:`Keeping everything else the same, here’s what’s ${budgetText({max:state.search.max})}.`});
+  }
+  if(/more expensive|pricier|higher end|splash out|bigger budget/.test(t)){
+    const cur=state.matches.slice(0,state.shown); const hi=cur.length?Math.max(...cur.map(i=>i.price)):200;
+    state.search.min=hi; delete state.search.max;
+    return runSearch({refine:true});
+  }
+  if(/^show all\b/.test(clean) && !isTopical(f)){ state.search={}; return runSearch({}); }
+  if(/^any denomination$/.test(clean)){ state.asked=true; return runSearch({}); }
+  if(/back to browsing/.test(t)) return {text:"Of course. What would you like to look for?", quick:STARTERS.slice(0,4).map(s=>s.text)};
+
+  // ---- Starter prompts needing a follow-up question ----
+  if(/^(find|search for|show me) (a |some )?coins?$/.test(clean)){
+    state.search={type:["coin"]}; state.asked=true;
+    return {text:"Happy to help. What sort of coin are you after? You can describe it naturally — for example, “a Victorian crown under £150”.", quick:["Victorian","Georgian","Gold sovereigns","World coins","Ancient"]};
+  }
+  if(/discover|explore collectibles|browse collectibles|what (else )?do you have|what'?s available/.test(t) && !isTopical(f) && !hasBudget(f)){
+    return {text:"Let’s find something that suits you. Which area interests you most?", quick:["British coins","World coins","Banknotes","Medals and tokens","Something rare"]};
+  }
+  if(/within my budget|in my budget|my price range|set a budget/.test(t) && !hasBudget(f)){
+    if(hasBudget(state.profile)) return budgetDiscovery({min:state.profile.min,max:state.profile.max}, null);
+    return {text:"Sure. What would you like to spend on a single item?", quick:["Under £50","£50–£100","£100–£250","£250+"]};
+  }
+  if(/marketplace|buy now/.test(t) && !isTopical(f)){
+    const res=CATALOG.filter(i=>i.status==="market").sort((a,b)=>a.price-b.price);
+    state.matches=res; state.shown=4; state.search={};
+    return {text:"These are fixed-price marketplace items you could buy straight away (demo data).", cards:res.slice(0,4), quick:["Show more","Only coins","Explore upcoming auctions"]};
+  }
+
+  // ---- Product discovery ----
+  const anyFilter = isTopical(f) || hasBudget(f) || f.metal || f.rare || f.beginner;
+  const prevBudget = hasBudget(state.profile) ? {min:state.profile.min,max:state.profile.max} : null;
+  const budgetOnly = hasBudget(f) && !isTopical(f) && !f.metal && !f.rare && !f.beginner;
+  const discoveryCue = /something|anything|items?|what can i|i have|i've got|got |my budget|budget is|spend|afford|mere paas|budget.*hai|kya mil|dikhao|stretch|increase|raise|go up|keep it under/.test(clean);
+  if(budgetOnly && (!isTopical(state.search) || (discoveryCue && !/stretch|increase|raise|go up|keep it under/.test(clean)))){
+    rememberBudget(f); renderPrefs();
+    return budgetDiscovery(f, prevBudget);
+  }
+  if(anyFilter){
+    rememberBudget(f);
+    const purchase=/\b(buy|want|looking for|after|get|purchase)\b/.test(t);
+    const broad=["era","region","metal"].filter(k=>f[k]!=null).length;
+    const specific=f.year!=null||f.yearMin!=null||f.denom||f.rare||f.beginner||f.historical;
+    // Fresh topic replaces the context; pure refinements (budget/metal/rarity) build on it
+    const freshRare = f.rare && !/rarer/.test(t);
+    if(isTopical(f) || freshRare){
+      if(!f.type && state.search.type && clean.split(" ").length<=3) f.type=state.search.type;
+      state.search={...f}; state.asked=false;
+    }
+    else { if(hasBudget(f)){ delete state.search.min; delete state.search.max; } state.search={...state.search, ...f}; }
+    renderPrefs();
+    if(purchase && broad===1 && !specific && !hasBudget(f) && !hasBudget(state.profile) && !state.asked){
+      state.asked=true;
+      return {text:"Certainly. Do you have a preference for a particular denomination or budget?", quick:["Any denomination","Under £100","£100–£250","£250+"]};
+    }
+    let note="";
+    if(budgetOnly && prevBudget && budgetShort(prevBudget)!==budgetShort(f)){
+      const d=describe(effective().e);
+      note = (f.max!=null && prevBudget.max!=null && f.max>prevBudget.max)
+        ? `Moving from ${budgetShort(prevBudget)} to ${budgetShort(f)} widens things nicely. Here are ${d}.`
+        : (f.max!=null && prevBudget.max!=null && f.max<prevBudget.max)
+        ? `Bringing it down to ${budgetShort(f)}. These ${d} still fit.`
+        : `Updated to ${budgetShort(f)}. Here are ${d}.`;
+    }
+    return runSearch({refine:!isTopical(f) && !freshRare, raw:t, note});
+  }
+
+  // ---- Keyword fallback over names ----
+  const words=clean.replace(/[^a-z0-9 ]/g," ").split(" ").filter(w=>w.length>3 && !/^(what|have|show|with|that|this|your|some|about|would|like|there|find|looking|could|please|want)$/.test(w));
+  const hits=CATALOG.filter(i=>words.some(w=>(i.name+" "+i.denom+" "+i.country).toLowerCase().includes(w)));
+  if(hits.length){
+    state.matches=hits; state.shown=Math.min(3,hits.length); state.search={};
+    return {text:`I found ${hits.length} item${hits.length>1?"s":""} that mention that in the demo catalogue.`, cards:hits.slice(0,3), quick:hits.length>3?["Show more","Start a new search"]:["Start a new search"]};
+  }
+  return {text:"I’m not sure I caught that. Try describing what you collect — an era, country, metal, year or budget all help. For example:",
+    quick:["Victorian silver under £200","Coins from 1890","Banknotes under £150","How does bidding work?"]};
+}
+
+function runSearch({refine=false, note:note0="", raw=""}){
+  let note=note0;
+  const eff=effective(); let e=eff.e, applied=eff.applied;
+  let {res,relaxed,g}=find(e);
+  if(relaxed.length && applied.length){
+    const e2={...e}; applied.forEach(a=>{ if(a==="budget"){delete e2.min;delete e2.max;} else delete e2[a]; });
+    const r2=find(e2);
+    if(!r2.relaxed.length){ ({res,relaxed,g}=r2); e=e2; note = note || `Nothing matched your remembered preferences exactly, so here are ${describe(e2)} without them.`; applied=[]; }
+  }
+  state.matches=res; state.searches++;
+  const first = state.searches===1;
+  const n = first ? Math.min(4,res.length) : Math.min(3,res.length);
+  state.shown=n;
+  const items=res.slice(0,n);
+  const desc=describe(e);
+  let text;
+  if(note) text=note;
+  else if(relaxed.length && !(relaxed.length===1 && relaxed[0]==="year" && g.exactYear===0 && res.length)){
+    const why = relaxed.includes("budget") ? `nothing in the demo catalogue fits ${budgetText(e)} exactly` : "there’s no exact match in the demo catalogue";
+    text=`Good question — ${why}, so I’ve widened the search slightly. These are the closest options to ${desc}.`;
+  }
+  else if(e.year!=null && g.exactYear) text=`There’s ${g.exactYear===1?"an exact match":g.exactYear+" exact matches"} for ${e.year}, plus a few pieces close in date.`;
+  else if(e.year!=null) text=`Nothing is dated exactly ${e.year} right now, but these are close in date.`;
+  else if(refine) text=pick([`Updated. Here are ${desc}.`,`Done — narrowed to ${desc}.`,`Here’s what fits now: ${desc}.`]);
+  else if(first) text=`Absolutely. I can help narrow that down. Based on your preferences, I’d suggest looking at ${desc}. Here are some relevant options from the demo catalogue.`;
+  else text=pick(res.length>=3?[`Here’s a selection of ${desc}.`,`Good choice. I found ${res.length} ${desc} — these are the strongest matches.`,`These ${desc} stand out.`]:[`Here’s what I found for ${desc}.`,`A focused match for ${desc}.`]);
+  const kept=applied.filter(a=>a!=="type");
+  if(kept.length && !note) text+=` I’ve kept to your remembered ${kept.map(a=>a==="budget"?"budget":a==="region"?(state.profile.region==="uk"?"British focus":"world focus"):a==="era"?ERA[state.profile.era]+" focus":a).join(" and ")}.`;
+
+  // follow-up question tailored to what’s still unknown
+  let after, quick=[];
+  const more=res.length>n;
+  if(!hasBudget(e)){ after="Would you like me to narrow this by budget?"; quick=["Under £100","£100–£250","£250+"]; }
+  else if((!e.type||e.type.includes("coin")) && !e.metal && !e.rare){ after="Any preference on metal?"; quick=["Silver only","Gold only","Copper & bronze"]; }
+  else if(e.region==="uk" && !e.era && !e.year && (!e.type || (e.type.length===1 && e.type[0]==="coin"))){ after="Want to focus on a particular reign?"; quick=["Victorian","Edwardian","Georgian"]; }
+  else { after= more?"Would you like to see more, or try something different?":"Would you like to try something different?"; quick=["Something rarer","Cheaper options","Start a new search"]; }
+  const st = res.length<=4 ? stretchPick(e) : null;
+  if(st && !relaxed.length){ after=`If you can stretch to ${money(st.price)}, there’s also the ${st.name}. ` + after; quick.unshift(`Stretch to ${money(st.price)}`); }
+  if(more) quick.unshift("Show more");
+  return {text, cards:items, why:it=>whyFor(it,e), after, quick:quick.slice(0,4)};
+}
+
+/* =====================================================================
+   RENDERING
+   ===================================================================== */
+const log=$("#log");
+function scrollToEl(el){
+  const top=el.getBoundingClientRect().top-log.getBoundingClientRect().top+log.scrollTop-10;
+  log.scrollTo({top: Math.min(top, log.scrollHeight), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+}
+function clearQuick(){ log.querySelectorAll(".quick").forEach(q=>q.remove()); }
+function userMsg(text){
+  clearQuick();
+  const el=document.createElement("div");
+  el.className="msg user";
+  el.innerHTML=`<div class="bubble">${esc(text)}</div><div class="meta">You, ${now()}</div>`;
+  log.appendChild(el); log.scrollTop=log.scrollHeight;
+}
+function cardHTML(it,why){
+  const watching=state.watch.has(it.id);
+  return `<article class="card" data-id="${it.id}">
+    <div class="card-top">
+      <div class="art-wrap">${artHTML(it)}</div>
+      <div class="card-info">
+        <h4>${esc(it.name)}</h4>
+        <div><span class="status ${it.status}">${statusLabel(it.status)}</span><span class="when">${esc(it.when)}</span></div>
+      </div>
+    </div>
+    <dl class="specs">
+      <dt>Year</dt><dd>${esc(yearText(it))}</dd>
+      <dt>Country</dt><dd>${esc(it.country)}</dd>
+      <dt>Denom.</dt><dd>${esc(it.denom)}</dd>
+      <dt>Metal</dt><dd>${esc(it.metal)}</dd>
+      <dt>Grade</dt><dd style="grid-column:span 3">${esc(it.grade)}</dd>
+    </dl>
+    <div class="price-row"><div><span class="pl">${priceLabel(it.status)}</span><span class="pv">${money(it.price)}</span></div><span class="demo-flag">Demo data</span></div>
+    ${why?`<div class="why">${esc(why)}</div>`:""}
+    <div class="card-actions">
+      <button class="btn" type="button" data-view="${it.id}" aria-label="View item: ${esc(it.name)}">View Item</button>
+      <button class="watch-btn" type="button" data-watch="${it.id}" aria-pressed="${watching}">${watching?"✓ Watching":"Add to Watchlist"}</button>
+    </div>
+  </article>`;
+}
+function botMsg(r){
+  const el=document.createElement("div");
+  el.className="msg bot";
+  let h=`<div class="bubble"><p>${esc(r.text)}</p>`;
+  if(r.steps) h+=`<ol class="steps">${r.steps.map(([a,b])=>`<li><b>${esc(a)}.</b> ${esc(b)}</li>`).join("")}</ol>`;
+  if(r.fine) h+=`<p class="fine">${esc(r.fine)}</p>`;
+  if(r.cta) h+=`<div class="cta-row">${r.cta.map((c,i)=>`<button class="btn" type="button" data-cta="${i}">${esc(c.label)}</button>`).join("")}</div>`;
+  h+=`</div>`;
+  if(r.auctions) h+=`<div class="cards">${r.auctions.map(a=>`<div class="auction-card"><div class="date"><b>${a.d}</b><span>${a.m.split(" ")[0]}</span></div><div><h4>${esc(a.title)}</h4><p>${a.lots} lots, ${esc(a.info)} <span class="demo-flag">Demo</span></p></div><button class="btn ghost" type="button" data-sale="${esc(a.title)}">View lots</button></div>`).join("")}</div>`;
+  if(r.cards && r.cards.length){
+    if(r.heading) h+=`<div class="cards-head">${esc(r.heading)}</div>`;
+    h+=`<div class="cards">${r.cards.map(it=>cardHTML(it, r.why?r.why(it):"")).join("")}</div>`;
+  }
+  if(r.after) h+=`<div class="bubble" style="margin-top:8px"><p>${esc(r.after)}</p></div>`;
+  h+=`<div class="meta">Silverhammer AI, ${now()}</div>`;
+  if(r.quick && r.quick.length) h+=`<div class="quick" role="group" aria-label="Suggested replies">${r.quick.map(q=>`<button class="qr" type="button">${esc(q)}</button>`).join("")}</div>`;
+  el.innerHTML=h;
+  el._r=r;
+  log.appendChild(el);
+  scrollToEl(el);
+}
+let busy=false;
+function send(text){
+  text=String(text||"").trim();
+  if(!text||busy) return;
+  userMsg(text);
+  const reply=respond(text);
+  busy=true;
+  const typing=document.createElement("div");
+  typing.className="msg bot typing"; typing.setAttribute("aria-label","Assistant is typing");
+  typing.innerHTML=`<div class="bubble"><span></span><span></span><span></span></div>`;
+  log.appendChild(typing); log.scrollTop=log.scrollHeight;
+  const delay=Math.min(1000, 380 + reply.text.length*2.2);
+  setTimeout(()=>{ typing.remove(); botMsg(reply); busy=false; }, delay);
+}
+
+function welcome(){
+  const el=document.createElement("div");
+  el.className="welcome-card";
+  el.innerHTML=`<h3>Silverhammer AI Collector Assistant</h3>
+    <p>Hi! I’m your Silverhammer Collector Assistant. I can help you discover coins and collectibles, explore auctions and answer questions about buying on Silverhammer.</p>
+    <div class="starters">${STARTERS.map(s=>`<button class="starter" type="button" data-say="${esc(s.text)}">${esc(s.label)}</button>`).join("")}</div>
+    <div class="demos"><h4>Try a demo</h4><div class="try-row">${DEMOS.map(d=>`<button class="chip" type="button" data-say="${esc(d.text)}">${esc(d.label)}</button>`).join("")}</div></div>
+    <p class="meta" style="margin:10px 0 0">Silverhammer AI, ${now()}</p>`;
+  log.appendChild(el);
+}
+
+function renderPrefs(){
+  const box=$("#prefs"), labels=profileLabel();
+  if(!labels.length){ box.hidden=true; box.innerHTML=""; return; }
+  box.hidden=false;
+  box.innerHTML=`<span class="lbl">Remembered:</span>${labels.map(l=>`<span class="pref">${esc(l)}</span>`).join("")}<button type="button" id="clearPrefs">Clear</button>`;
+}
+function updateWatchCounts(){ document.querySelectorAll("[data-watch-count]").forEach(b=>b.textContent=state.watch.size); }
+
+let toastTimer;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.hidden=true,2600); }
+
+/* Item modal */
+let lastFocus=null;
+function openModal(id){
+  const it=byId(id); if(!it) return;
+  lastFocus=document.activeElement;
+  const watching=state.watch.has(id);
+  $("#modal").innerHTML=`<div class="modal-top"><div class="modal-art">${artHTML(it)}</div>
+    <div class="modal-body"><span class="lot">${esc(it.lot)}</span> <span class="demo-flag">Demo data</span>
+      <h3 id="modalTitle">${esc(it.name)}</h3>
+      <div><span class="status ${it.status}">${statusLabel(it.status)}</span><span class="when">${esc(it.when)}</span></div>
+      <p class="desc">${esc(it.note)}</p>
+      <dl class="specs"><dt>Year</dt><dd>${esc(yearText(it))}</dd><dt>Country</dt><dd>${esc(it.country)}</dd><dt>Denom.</dt><dd>${esc(it.denom)}</dd><dt>Metal</dt><dd>${esc(it.metal)}</dd><dt>Grade</dt><dd style="grid-column:span 3">${esc(it.grade)}</dd></dl>
+      <div class="price-row" style="margin-top:12px"><div><span class="pl">${priceLabel(it.status)}</span><span class="pv">${money(it.price)}</span></div></div>
+    </div></div>
+    <div class="modal-foot">
+      <button class="btn" type="button" data-bid="${id}">${it.status==="market"?"Buy now":"Place a bid"}</button>
+      <button class="watch-btn btn" type="button" data-watch="${id}" aria-pressed="${watching}" style="background:transparent;color:inherit;border-color:var(--line)">${watching?"✓ Watching":"Add to Watchlist"}</button>
+      <button class="btn ghost" type="button" data-close-modal style="margin-left:auto">Close</button>
+    </div>`;
+  $("#modalBg").hidden=false;
+  $("#modal").querySelector("[data-close-modal]").focus();
+}
+function closeModal(){ $("#modalBg").hidden=true; if(lastFocus) lastFocus.focus(); }
+
+function toggleWatch(id){
+  const it=byId(id); if(!it) return;
+  if(state.watch.has(id)){ state.watch.delete(id); toast(`Removed ${it.name} from your watchlist.`); }
+  else { state.watch.add(id); toast(`Added ${it.name} to your watchlist.`); }
+  document.querySelectorAll(`[data-watch="${id}"]`).forEach(b=>{ const on=state.watch.has(id); b.setAttribute("aria-pressed",on); b.textContent=on?"✓ Watching":"Add to Watchlist"; });
+  updateWatchCounts();
+}
+
+/* =====================================================================
+   OPEN / CLOSE / MINIMISE
+   ===================================================================== */
+const chat=$("#chat"), fab=$("#fab"), input=$("#input");
+let started=false;
+function openChat(focus=true){
+  chat.hidden=false; chat.classList.remove("min"); chat.classList.add("opening");
+  setTimeout(()=>chat.classList.remove("opening"),320);
+  fab.hidden=true; fab.setAttribute("aria-expanded","true"); $("#minBtn").setAttribute("aria-expanded","true");
+  if(!started){ welcome(); started=true; }
+  if(focus) setTimeout(()=>input.focus(),60);
+}
+function closeChat(){ chat.hidden=true; fab.hidden=false; fab.setAttribute("aria-expanded","false"); fab.focus(); }
+function toggleMin(){
+  const min=chat.classList.toggle("min");
+  $("#minBtn").setAttribute("aria-expanded",String(!min));
+  $("#minBtn").setAttribute("aria-label", min?"Expand assistant":"Minimise assistant");
+}
+function ask(text){ openChat(false); setTimeout(()=>send(text), started?60:250); }
+
+fab.addEventListener("click",()=>openChat());
+$("#closeBtn").addEventListener("click",closeChat);
+$("#minBtn").addEventListener("click",toggleMin);
+chat.querySelector(".chat-head").addEventListener("click",e=>{ if(chat.classList.contains("min") && !e.target.closest("button")) toggleMin(); });
+$("#send").addEventListener("click",()=>{ send(input.value); input.value=""; input.focus(); });
+input.addEventListener("keydown",e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(input.value); input.value=""; } });
+
+// Delegated clicks inside the conversation
+log.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.classList.contains("qr")) return send(b.textContent);
+  if(b.dataset.say) return send(b.dataset.say);
+  if(b.dataset.view) return openModal(b.dataset.view);
+  if(b.dataset.watch) return toggleWatch(b.dataset.watch);
+  if(b.dataset.sale) return send(b.dataset.sale.includes("Banknote")?"Show me banknotes":b.dataset.sale.includes("Medal")?"Show me medals and tokens":"Show me live lots");
+  if(b.dataset.cta!=null){
+    const r=b.closest(".msg")._r, c=r.cta[+b.dataset.cta];
+    if(c.say) return send(c.say);
+    if(c.toast) return toast(c.toast);
+  }
+});
+$("#prefs").addEventListener("click",e=>{ if(e.target.id==="clearPrefs"){ state.profile={}; state.search={}; renderPrefs(); toast("Preferences cleared for this session."); } });
+$("#modalBg").addEventListener("click",e=>{
+  if(e.target.id==="modalBg" || e.target.closest("[data-close-modal]")) return closeModal();
+  const w=e.target.closest("[data-watch]"); if(w) return toggleWatch(w.dataset.watch);
+  if(e.target.closest("[data-bid]")) toast("Demo only — in production this continues to Silverhammer’s secure bidding page.");
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){ if(!$("#modalBg").hidden) closeModal(); else if(!chat.hidden && !chat.classList.contains("min")) toggleMin(); }
+});
+
+// Website hooks
+$("#heroSend").addEventListener("click",()=>{ const v=$("#heroInput").value.trim(); if(v){ ask(v); $("#heroInput").value=""; } else openChat(); });
+$("#heroInput").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("#heroSend").click(); } });
+document.querySelectorAll("[data-demo-row]").forEach(row=>{
+  row.innerHTML=DEMOS.map(d=>`<button class="chip" type="button">${esc(d.label)}</button>`).join("");
+  row.querySelectorAll("button").forEach((btn,i)=>btn.addEventListener("click",()=>ask(DEMOS[i].text)));
+});
+document.querySelectorAll("[data-ask]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); $("#nav").classList.remove("open"); ask(a.dataset.ask); }));
+$("#siteWatch").addEventListener("click",()=>ask("Show my watchlist"));
+$("#menuBtn").addEventListener("click",()=>{ const o=$("#nav").classList.toggle("open"); $("#menuBtn").setAttribute("aria-expanded",o); });
+$("[data-sales]").innerHTML=AUCTIONS.slice(0,3).map(a=>`<div class="sale"><div class="date"><b>${a.d}</b><span>${a.m.split(" ")[0]}</span></div><div><h3>${esc(a.title)}</h3><p>${a.lots} lots, ${esc(a.info)}</p></div></div>`).join("");
+
+// Open the assistant automatically on larger screens so the POC is immediately visible
+if(matchMedia("(min-width: 641px)").matches) setTimeout(()=>openChat(false),500);
+
+// expose for testing
+window.__sh={respond, parse, state};
+})();
+</script>
+</body>
+</html>
